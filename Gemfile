@@ -36,3 +36,6 @@ gem 'spring',        group: :development
 # Use debugger
 # gem 'debugger', group: [:development, :test]
 
+# Mongo db
+gem 'mongo'
+gem 'bson_ext'
