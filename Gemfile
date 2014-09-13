@@ -39,3 +39,6 @@ gem 'spring',        group: :development
 # Mongo db
 gem 'mongo'
 gem 'bson_ext'
+
+# Redis
+gem 'redis'
