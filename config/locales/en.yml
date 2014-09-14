@@ -21,4 +21,5 @@
 
 en:
   400response_middleware_invalid_json: "There was a problem in your JSON"
+  401response: "Not authorized"
   500response_internal_server_error: "Internal Server Error"
