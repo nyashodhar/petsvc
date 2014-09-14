@@ -20,4 +20,5 @@
 # available at http://guides.rubyonrails.org/i18n.html.
 
 en:
-  hello: "Hello world"
+  400response_middleware_invalid_json: "There was a problem in your JSON"
+  500response_internal_server_error: "Internal Server Error"
