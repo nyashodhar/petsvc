@@ -42,7 +42,10 @@ class Device
   #
   field :serial, type: String
   index({ serial: 1 }, { unique: true, background: true })
-  validates_length_of :serial, minimum: 8, maximum: 256
+  validates :serial, length: {
+      minimum: 8, too_short: I18n.t("input_is_too_short"),
+      maximum: 16, too_long: I18n.t("input_is_too_long")
+  }
 
   #
   # Override the _id field and replace it with the unique serial number values
