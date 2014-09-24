@@ -38,9 +38,11 @@ gem 'spring',        group: :development
 
 gem 'rest-client'
 
+# Mongoid
+gem "mongoid", "~> 4.0.0"
+
 # Mongo db
 gem 'mongo'
-gem 'bson_ext'
 
 # Redis
 gem 'redis'
