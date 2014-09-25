@@ -6,7 +6,11 @@ Rails.application.routes.draw do
 
   # DevicesController
   #===============================
-  post "device", to: "devices#create", as: 'create'
+  post "device", to: "devices#create", as: 'create_device'
+
+  # ApplicationController:
+  #===============================
+  match "*path", to: "application#not_found", via: :all
 
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
