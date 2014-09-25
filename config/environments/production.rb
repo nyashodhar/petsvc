@@ -1,6 +1,35 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Base URL for downstream auth service
+  config.authsvc_base_url = "https://authsvc.petpal.mobi"
+
+  #
+  # A set of emails that are known to be internal users and
+  # should be given more authorization
+  #
+  config.authorized_internal_users = ["herrstrudel@gmail.com"]
+
+  # Redis
+  # TODO: THE REDIS CONFIG NEEDS TO BE UPDATED LATER FOR THIS ENVIRONMENT
+  config.redis_host = "localhost"
+  config.redis_port = "6379"
+
+  #
+  # Setting this to true means:
+  #
+  #   1) redis.conf has a password specified, e.g.
+  #
+  #         masterauth supersecretpassword123
+  #
+  #   2) The slaves are required to provide a password
+  #      when connecting to the master, e.g. in redis.conf:
+  #
+  #         requirepass supersecretpassword123
+  #
+  config.redis_password_required = true
+  config.redis_password = "test123"
+
   # Code is not reloaded between requests.
   config.cache_classes = true
 
@@ -76,4 +105,11 @@ Rails.application.configure do
 
   # Use default logging formatter so that PID and timestamp are not suppressed.
   config.log_formatter = ::Logger::Formatter.new
+
+  config.logger = Logger.new(STDOUT)
+  config.logger.level = Logger::DEBUG
+
+  # Use default logging formatter so that PID and timestamp are not suppressed.
+  config.log_formatter = ::Logger::Formatter.new
+
 end

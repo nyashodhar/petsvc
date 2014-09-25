@@ -20,4 +20,13 @@
 # available at http://guides.rubyonrails.org/i18n.html.
 
 en:
-  hello: "Hello world"
+  400response_middleware_invalid_json: "There was a problem in your JSON"
+  401response: "Not authorized"
+  404response_resource_not_found: "Resource not found"
+  422response: "Unprocessable Entity"
+  409response: "Conflict"
+  500response_internal_server_error: "Internal Server Error"
+
+  input_is_too_long: "Input is too long"
+  input_is_too_short: "Input is too short"
+  field_is_required: "Field is required"

@@ -1,6 +1,34 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Base URL for downstream auth service
+  config.authsvc_base_url = "https://authpetpalci.herokuapp.com"
+
+  #
+  # A set of emails that are known to be internal users and
+  # should be given more authorization
+  #
+  config.authorized_internal_users = ["herrstrudel@gmail.com"]
+
+  # Redis
+  config.redis_host = "localhost"
+  config.redis_port = "6379"
+
+  #
+  # Setting this to true means:
+  #
+  #   1) redis.conf has a password specified, e.g.
+  #
+  #         masterauth test123
+  #
+  #   2) The slaves are required to provide a password
+  #      when connecting to the master, e.g. in redis.conf:
+  #
+  #         requirepass test123
+  #
+  config.redis_password_required = true
+  config.redis_password = "test123"
+
   # In the development environment your application's code is reloaded on
   # every request. This slows down response time but is perfect for development
   # since you don't have to restart the web server when you make code changes.
@@ -31,4 +59,9 @@ Rails.application.configure do
 
   # Raises error for missing translations
   # config.action_view.raise_on_missing_translations = true
+
+  #Logger Config
+  config.logger = ActiveSupport::TaggedLogging.new(Logger.new('log/petsvc-dev.log', 'daily'))
+  config.log_level = :info
+
 end

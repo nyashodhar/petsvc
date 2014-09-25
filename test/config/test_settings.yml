@@ -1,0 +1,19 @@
+###########################################
+# This file contains some URLs used for
+# RestClient connections in integration tests
+###########################################
+
+test:
+  target_service_url: http://127.0.0.1:3000
+  auth_service_url: https://authpetpalci.herokuapp.com
+  mock_auth_svc_in_tests: true
+
+development:
+  target_service_url: http://127.0.0.1:3000
+  auth_service_url: https://authpetpalci.herokuapp.com
+  mock_auth_svc_in_tests: = false
+
+production:
+  target_service_url: http://supercoolservieurl:3000
+  auth_service_url: https://authpetpalci.herokuapp.com
+  mock_auth_svc_in_tests: = false
