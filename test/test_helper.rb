@@ -12,6 +12,7 @@ require 'helpers/auth_service_mock_helper'
 require 'helpers/auth_service_real_helper'
 require 'helpers/base_integration_test'
 require 'integration/local_integration_test'
+require 'remote/remote_integration_test'
 
 require 'controllers/deployments_controller_tests'
 
