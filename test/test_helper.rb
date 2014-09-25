@@ -11,6 +11,7 @@ require 'config/test_settings_util'
 require 'helpers/auth_service_mock_helper'
 require 'helpers/auth_service_real_helper'
 require 'helpers/base_integration_test'
+require 'integration/local_integration_test'
 
 class ActiveSupport::TestCase
   # Add more helper methods to be used by all tests here...
