@@ -29,3 +29,4 @@ en:
 
   input_is_too_long: "Input is too long"
   input_is_too_short: "Input is too short"
+  field_is_required: "Field is required"

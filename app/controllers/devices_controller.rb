@@ -1,5 +1,7 @@
 class DevicesController < AuthenticatedController
 
+  include MongoIdHelper
+
   #
   # Note: This filter will do a downstream request to the auth service to
   # check that there is an external user sign-in for the auth token
@@ -30,35 +32,19 @@ class DevicesController < AuthenticatedController
     # If anything else fails, give 500 error
     #
 
+    if(!device.valid?)
+      handle_mongoid_validation_error(device, device_args)
+      return
+    end
+
     begin
       device.save!
-    rescue Mongoid::Errors::Validations => e
-
-      if(e.document.errors.messages.blank?)
-        logger.error "Validation error occured when saving device #{device_args}, but the document contains no error message, error #{e.inspect}"
-        render :status => 422, :json => {:error => I18n.t("422response")}
-        return
-      else
-
-        logger.error "Error when saving device #{device_args}, error: #{e.document.errors.messages}\n"
-
-        #
-        # Note: The error message should already by localized via the spec
-        # in the mongoid object itself.
-        #
-        render :status => 422, :json => {:error => e.document.errors.messages}
-        return
-      end
-
     rescue => e
-      logger.error "Unexpected error when saving device #{device_args}, error: #{e.inspect}\n"
-      render :status => 500, :json => {:error => I18n.t("500response")}
+      logger.error "Unexpected error when saving document #{device_args}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
     end
 
     # Success 201
-
     render :status => 201, :json => {:serial => device.serial}
-
   end
-
 end

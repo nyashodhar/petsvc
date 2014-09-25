@@ -42,9 +42,10 @@ class Device
   #
   field :serial, type: String
   index({ serial: 1 }, { unique: true, background: true })
+  validates_presence_of :serial, message: I18n.t("field_is_required")
   validates :serial, length: {
       minimum: 8, too_short: I18n.t("input_is_too_short"),
-      maximum: 16, too_long: I18n.t("input_is_too_long")
+      maximum: 256, too_long: I18n.t("input_is_too_long")
   }
 
   #
