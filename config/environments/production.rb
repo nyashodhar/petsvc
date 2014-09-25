@@ -4,6 +4,12 @@ Rails.application.configure do
   # Base URL for downstream auth service
   config.authsvc_base_url = "https://authsvc.petpal.mobi"
 
+  #
+  # A set of emails that are known to be internal users and
+  # should be given more authorization
+  #
+  config.authorized_internal_users = ["herrstrudel@gmail.com"]
+
   # Redis
   # TODO: THE REDIS CONFIG NEEDS TO BE UPDATED LATER FOR THIS ENVIRONMENT
   config.redis_host = "localhost"

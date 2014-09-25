@@ -8,7 +8,6 @@ Rails.application.configure do
   # A set of emails that are known to be internal users and
   # should be given more authorization
   #
-
   config.authorized_internal_users = ["herrstrudel@gmail.com"]
 
   # Redis
