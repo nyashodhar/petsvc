@@ -13,6 +13,8 @@ require 'helpers/auth_service_real_helper'
 require 'helpers/base_integration_test'
 require 'integration/local_integration_test'
 
+require 'controllers/deployments_controller_tests'
+
 class ActiveSupport::TestCase
   # Add more helper methods to be used by all tests here...
 end

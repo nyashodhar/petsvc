@@ -14,12 +14,12 @@ class TestSettingsUtil
     @test_settings_for_env = test_settings_yaml[the_environment]
   end
 
-  def get_profile_service_url
-    return @test_settings_for_env['profile_service_url']
-  end
-
   def get_target_service_url
     return @test_settings_for_env['target_service_url']
+  end
+
+  def get_auth_service_url
+    return @test_settings_for_env['auth_service_url']
   end
 
   def get_mock_auth_svc_in_tests
