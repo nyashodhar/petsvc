@@ -14,7 +14,7 @@ class RemoteIntegrationTest < BaseIntegrationTest
   # API specified.
   #
   ##########################################################
-  def check_api_is_protected(http_method, api_uri, request_body)
+  def check_api_is_protected(http_method, api_uri, request_body, internal_user_required)
 
     validate_http_method(http_method)
 
@@ -34,9 +34,19 @@ class RemoteIntegrationTest < BaseIntegrationTest
     response = exercise_api(http_method, api_uri, request_body, my_headers)
     assert_response_code(response, 401)
 
+    if(internal_user_required)
+      #
+      # If the auth token is good, but the authenticated user is an external user when an
+      # internal was required, we should get a 401 from the filter
+      #
+      external_user_auth_token = get_good_auth_token(false)
+      my_headers['X-User-Token'] = external_user_auth_token
+      response = exercise_api(http_method, api_uri, request_body, my_headers)
+      assert_response_code(response, 401)
+    end
+
     STDOUT.write "Good news: The API \'#{http_method} #{api_uri}\' passed auth tests.\n"
   end
-
 
   def create_headers(http_method)
     return {'Content-Type' => 'application/json', 'Accept' => 'application/json' }
