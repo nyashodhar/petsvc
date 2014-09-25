@@ -15,6 +15,7 @@ require 'integration/local_integration_test'
 require 'remote/remote_integration_test'
 
 require 'controllers/deployments_controller_tests'
+require 'middleware/catch_json_parse_errors_tests'
 
 class ActiveSupport::TestCase
   # Add more helper methods to be used by all tests here...
