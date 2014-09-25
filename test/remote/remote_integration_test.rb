@@ -95,8 +95,12 @@ class RemoteIntegrationTest < BaseIntegrationTest
     end
   end
 
-  def get_good_auth_token
-    return get_token_from_real_login(@email, @password, @auth_svc_base_url)
+  def get_good_auth_token(internal_user)
+    if(internal_user)
+      return get_token_from_real_login(@internal_user_email, @internal_user_password, @auth_svc_base_url)
+    else
+      return get_token_from_real_login(@external_user_email, @external_user_password, @auth_svc_base_url)
+    end
   end
 
 end

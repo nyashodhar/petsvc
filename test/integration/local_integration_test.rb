@@ -8,7 +8,7 @@ class LocalIntegrationTest < BaseIntegrationTest
     @mock_auth_service = @@test_settings_util.get_mock_auth_svc_in_tests
     if(@mock_auth_service)
       WebMock.disable_net_connect!
-      auth_mock_normal
+      auth_mock_normal(@external_user_email)
     else
       WebMock.allow_net_connect!
     end
@@ -21,14 +21,14 @@ class LocalIntegrationTest < BaseIntegrationTest
   # API specified.
   #
   ##########################################################
-  def check_api_is_protected(http_method, api_uri, request_body)
+  def check_api_is_protected(http_method, api_uri, request_body, internal_user_required)
 
     validate_http_method(http_method)
 
-    my_headers = create_headers_with_auth_token(http_method, api_uri)
+    my_headers = create_headers_with_auth_token(http_method, "BAD")
 
     if(@mock_auth_service)
-      auth_mock_normal
+      auth_mock_normal(@external_user_email)
     end
 
     #
@@ -45,6 +45,16 @@ class LocalIntegrationTest < BaseIntegrationTest
     response = exercise_api(http_method, api_uri, request_body, my_headers)
     assert_response_code(response, 401)
 
+    if(internal_user_required)
+      #
+      # If the auth token is good, but the authenticated user is an external user when an
+      # internal was required, we should get a 401 from the filter
+      #
+      my_headers['X-User-Token'] = "GOOD"
+      response = exercise_api(http_method, api_uri, request_body, my_headers)
+      assert_response_code(response, 401)
+    end
+
     if(@mock_auth_service)
 
       #
@@ -55,7 +65,7 @@ class LocalIntegrationTest < BaseIntegrationTest
 
       # If the filter got 200 response from auth service that didn't echo the auth token,
       # then the filter should give 500 response
-      auth_mock_good_gives_200_response_missing_token
+      auth_mock_good_gives_200_response_missing_token(@external_user_email)
       my_headers['X-User-Token'] = "GOOD"
       response = exercise_api(http_method, api_uri, request_body, my_headers)
       assert_response_code(response, 500)
@@ -67,7 +77,7 @@ class LocalIntegrationTest < BaseIntegrationTest
       assert_response_code(response, 500)
 
       # Leave the mocking in a normal state...
-      auth_mock_normal
+      auth_mock_normal(@external_user_email)
     end
 
     STDOUT.write "Good news: The API \'#{http_method} #{api_uri}\' passed auth tests.\n"
@@ -107,9 +117,13 @@ class LocalIntegrationTest < BaseIntegrationTest
     return response
   end
 
-  def get_good_auth_token
+  def get_good_auth_token(internal_user)
     if(!@mock_auth_service)
-      return get_token_from_real_login(@email, @password, @auth_svc_base_url)
+      if(internal_user)
+        return get_token_from_real_login(@internal_user_email, @internal_user_password, @auth_svc_base_url)
+      else
+        return get_token_from_real_login(@external_user_email, @external_user_password, @auth_svc_base_url)
+      end
     else
      return "GOOD"
     end

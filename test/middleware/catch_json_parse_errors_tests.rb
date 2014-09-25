@@ -8,9 +8,9 @@ module CatchJsonParseErrorsTests
 
     invalid_json = '{ not good json'
 
-    good_auth_token = get_good_auth_token
-    profile_update_headers = create_headers_with_auth_token("POST", good_auth_token)
-    response = do_post_with_headers("profile", invalid_json, profile_update_headers)
+    good_auth_token = get_good_auth_token(false)
+    post_headers = create_headers_with_auth_token("POST", good_auth_token)
+    response = do_post_with_headers("device", invalid_json, post_headers)
     assert_response_code(response, 400)
 
     the_response = JSON.parse(response.body)

@@ -4,8 +4,13 @@ class BaseIntegrationTest < ActionDispatch::IntegrationTest
   @@test_settings_util = TestSettingsUtil.new
 
   setup do
-    @email = @@auth_service_credentials.get_username('1')
-    @password = @@auth_service_credentials.get_password('1')
+
+    @internal_user_email = @@auth_service_credentials.get_username('1')
+    @internal_user_password = @@auth_service_credentials.get_password('1')
+
+    @external_user_email = @@auth_service_credentials.get_username('2')
+    @external_user_password = @@auth_service_credentials.get_password('2')
+
     @auth_svc_base_url = @@test_settings_util.get_auth_service_url
   end
 

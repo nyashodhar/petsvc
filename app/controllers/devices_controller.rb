@@ -8,7 +8,7 @@ class DevicesController < AuthenticatedController
 
   #######################################################
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json" -d '{"serial":"234234DTWERTSDF"}'
+  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"serial":"234234DTWERTSDF"}'
   #######################################################
   def create
 

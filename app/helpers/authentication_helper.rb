@@ -74,7 +74,7 @@ module AuthenticationHelper
       set_authorization_info(authenticated_id, authenticated_email, authenticated_internal_user)
 
       # SUCCESS - Control flow will now enter the controller's action
-      logger.info "ensure_authorized(): Auth service success. CODE: #{auth_service_response.code}, USERID: #{auth_service_response_hash['id']}, INTERNAL_USER: #{authenticated_internal_user}"
+      logger.info "ensure_authorized(): Auth service success. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{auth_service_response_hash['id']}, INTERNAL_USER: #{authenticated_internal_user}"
       return
 
     rescue => e
