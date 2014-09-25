@@ -1,4 +1,10 @@
-class DevicesController < ActionController::Base
+class DevicesController < AuthenticatedController
+
+  #
+  # Note: This filter will do a downstream request to the auth service to
+  # check that there is an external user sign-in for the auth token
+  #
+  before_action :ensure_authorized_internal
 
   #######################################################
   # EXAMPLE LOCAL:

@@ -1,7 +1,7 @@
 module AuthenticationHelper
 
   ########################################################################
-  # This method is in use for ALL PROTECTED APIS.
+  # This method is in use for ALL PROTECTED APIs.
   #
   # If something goes wrong this method will render one of the two
   # following errors back to the client.
@@ -9,6 +9,8 @@ module AuthenticationHelper
   # 401:
   # - The request did not include an auth token
   # - Auth service found a sign-in for the auth token, but it's expired
+  # - Auth service found a sign-in for the auth token, but it was an
+  #   external user when internal user was required.
   # - Auth service did not find any sign-in for given token
   #
   # 500:
@@ -20,8 +22,17 @@ module AuthenticationHelper
   # check we will conclude that the user's sign-in is valid and control
   # will be allowed to reach the controller action.
   ########################################################################
-  def ensure_authorized
+  def ensure_authorized_external
+    ensure_authorized(false)
+  end
 
+  def ensure_authorized_internal
+    ensure_authorized(true)
+  end
+
+  private
+
+  def ensure_authorized(internal_user_required)
     token = request.headers['X-User-Token']
     if(token.blank?)
       logger.error "ensure_authorized(): No auth token found in request"
@@ -54,7 +65,13 @@ module AuthenticationHelper
       authenticated_id = auth_service_response_hash['id']
       authenticated_internal_user = Rails.application.config.authorized_internal_users.include?(authenticated_email)
 
-      set_authenticated_user_id(authenticated_id, authenticated_email, authenticated_internal_user)
+      if(internal_user_required && !authenticated_internal_user)
+        logger.error "ensure_authorized(): The authenticated user #{authenticated_email}:#{authenticated_id} is not an internal user. (auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers})"
+        render :status => 401, :json => {:error => I18n.t("401response")}
+        return
+      end
+
+      set_authorization_info(authenticated_id, authenticated_email, authenticated_internal_user)
 
       # SUCCESS - Control flow will now enter the controller's action
       logger.info "ensure_authorized(): Auth service success. CODE: #{auth_service_response.code}, USERID: #{auth_service_response_hash['id']}, INTERNAL_USER: #{authenticated_internal_user}"
@@ -78,6 +95,7 @@ module AuthenticationHelper
       end
 
     end
- end
+  end
+
 
 end
