@@ -1,6 +1,9 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # Base URL for downstream auth service
+  config.authsvc_base_url = "https://authsvc.petpal.mobi"
+
   # Redis
   # TODO: THE REDIS CONFIG NEEDS TO BE UPDATED LATER FOR THIS ENVIRONMENT
   config.redis_host = "localhost"
