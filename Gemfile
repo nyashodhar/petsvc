@@ -36,6 +36,11 @@ gem 'spring',        group: :development
 # Use debugger
 # gem 'debugger', group: [:development, :test]
 
+# Use webmock, but only in the test environment..
+group :test do
+  gem "webmock"
+end
+
 gem 'rest-client'
 
 # Mongoid
