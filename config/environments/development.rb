@@ -4,6 +4,13 @@ Rails.application.configure do
   # Base URL for downstream auth service
   config.authsvc_base_url = "https://authpetpalci.herokuapp.com"
 
+  #
+  # A set of emails that are known to be internal users and
+  # should be given more authorization
+  #
+
+  config.authorized_internal_users = ["herrstrudel@gmail.com"]
+
   # Redis
   config.redis_host = "localhost"
   config.redis_port = "6379"
