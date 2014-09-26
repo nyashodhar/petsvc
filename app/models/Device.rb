@@ -52,4 +52,9 @@ class Device
   # Override the _id field and replace it with the unique serial number values
   #
   field :_id, type: String, default: ->{ serial }
+
+  #
+  # TODO: Add device version field
+  #
+
 end
