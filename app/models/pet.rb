@@ -30,8 +30,10 @@ class Pet
 
   # ID
   field :id, type: String, default: -> { SecureRandom.uuid }
-  field :_id, type: String, default: ->{ id }
+  validates_presence_of :id, message: I18n.t("field_is_required")
   index({ id: 1 }, { unique: true, background: true })
+
+  field :_id, type: String, default: ->{ id }
 
   # NAME
   field :name, type: String
@@ -45,7 +47,7 @@ class Pet
   field :birth_year, type: Integer
   validates_presence_of :birth_year, message: I18n.t("field_is_required")
   validates :birth_year, numericality: {
-    greater_than_or_equal_to: 0, less_than: 100, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[0,99]")
+    greater_than_or_equal_to: 1970, less_than: 10000, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[1970,9999]")
   }
 
   # CREATURE TYPE
@@ -75,12 +77,15 @@ class Pet
   #
   # DEVICE SERIAL
   # TODO: Figure out how to add a foreign key to the device object here, if that makes sense
+  # If that does not make sense, we should probably at least have a unique index for
+  # device serial in the pets to ensure that no two pets have the same device serial
   #
-  field :device_serial, type: String
-  validates :device_serial, length: {
-      minimum: 1, too_short: I18n.t("input_is_too_short"),
-      maximum: 256, too_long: I18n.t("input_is_too_long")
-  }
+  field :device_serial, type: String, default: ->{ nil }
+  #
+  # validates :device_serial, length: {
+  #    minimum: 0, too_short: I18n.t("input_is_too_short"),
+  #    maximum: 256, too_long: I18n.t("input_is_too_long")
+  #}
 
   #
   # TODO: OWNER INVITATION TOKEN

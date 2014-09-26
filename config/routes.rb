@@ -8,6 +8,10 @@ Rails.application.routes.draw do
   #===============================
   post "device", to: "devices#create", as: 'create_device'
 
+  # PetsController
+  #===============================
+  post "pet", to: "pets#create_pet", as: 'create_pet'
+
   # ApplicationController:
   #===============================
   match "*path", to: "application#not_found", via: :all
