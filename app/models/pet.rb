@@ -34,8 +34,40 @@ RULES:
 
 class Pet
 
+  include Mongoid::Document
+
+  # ID
+  field :id, type: String, default: -> { SecureRandom.uuid }
+  field :_id, type: String, default: ->{ id }
+  index({ id: 1 }, { unique: true, background: true })
+
+  # NAME
+  field :name, type: String
+  validates_presence_of :name, message: I18n.t("field_is_required")
+  validates :name, length: {
+      minimum: 1, too_short: I18n.t("input_is_too_short"),
+      maximum: 256, too_long: I18n.t("input_is_too_long")
+  }
+
+  # BIRTH YEAR
+  field :birth_year, type: Integer
+  validates_presence_of :birth_year, message: I18n.t("field_is_required")
+  validates :birth_year, numericality: {
+    greater_than_or_equal_to: 0, less_than: 100, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[0,99]")
+  }
+
   #
-  # TODO: Create mongoid spec for the Pet object here
+  # TODO: Need to add a resource bundle for pet breeds and add a way to validate that the
+  # pet breed given here is a valid breed for the type of pet given...
   #
+
+  # CREATURE TYPE
+  field :creature_type, type: Integer
+  validates_presence_of :creature_type, message: I18n.t("field_is_required")
+  validates :creature_type, numericality: {
+      greater_than_or_equal_to: 0, less_than: 2, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[0,1]")
+  }
+
+  # TODO: Still need to add more fields here
 
 end

@@ -30,3 +30,4 @@ en:
   input_is_too_long: "Input is too long"
   input_is_too_short: "Input is too short"
   field_is_required: "Field is required"
+  number_must_be_in_range: "Number must be in the range %{range}"
