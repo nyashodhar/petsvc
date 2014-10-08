@@ -1,6 +1,7 @@
 class AuthenticatedController < ActionController::Base
 
   include AuthenticationHelper
+  include AuthorizationHelper
 
   private
 

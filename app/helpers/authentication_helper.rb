@@ -1,7 +1,8 @@
 module AuthenticationHelper
 
   ########################################################################
-  # This method is in use for ALL PROTECTED APIs.
+  # This method is in use for all controller actions that require
+  # authentication.
   #
   # If something goes wrong this method will render one of the two
   # following errors back to the client.
@@ -22,20 +23,11 @@ module AuthenticationHelper
   # check we will conclude that the user's sign-in is valid and control
   # will be allowed to reach the controller action.
   ########################################################################
-  def ensure_authorized_external
-    ensure_authorized(false)
-  end
+  def ensure_authenticated
 
-  def ensure_authorized_internal
-    ensure_authorized(true)
-  end
-
-  private
-
-  def ensure_authorized(internal_user_required)
     token = request.headers['X-User-Token']
     if(token.blank?)
-      logger.error "ensure_authorized(): No auth token found in request"
+      logger.error "ensure_authenticated(): No auth token found in request"
       render :status => 401, :json => {:error => I18n.t("401response")}
       return
     end
@@ -46,7 +38,7 @@ module AuthenticationHelper
     # Note: Without setting accept header here, we will get an XML response
     auth_request_headers = {'Content-Type' => 'application/json', 'X-User-Token' => token, 'Accept' => 'application/json'}
 
-    logger.debug "ensure_authorized(): Doing GET #{auth_url} (headers = #{auth_request_headers})"
+    logger.debug "ensure_authenticated(): Doing GET #{auth_url} (headers = #{auth_request_headers})"
 
     begin
 
@@ -54,48 +46,38 @@ module AuthenticationHelper
       auth_service_response_hash = JSON.parse(auth_service_response)
 
       if(auth_service_response_hash['authentication_token'].blank? || !auth_service_response_hash['authentication_token'].eql?(token))
-        logger.error "ensure_authorized(): Auth service gave success response but the user's token could not be found in the response. This should NEVER happen!. CODE: #{auth_service_response.code}, RESPONSE: #{auth_service_response} (auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers})"
+        logger.error "ensure_authenticated(): Auth service gave success response but the user's token could not be found in the response. This should NEVER happen!. CODE: #{auth_service_response.code}, RESPONSE: #{auth_service_response} (auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers})"
         render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
         return
       end
 
-      # Make the id of the authenticated user available inside the controller's action:
-
+      # Make the id of the authenticated user available in controller instance variables:
       authenticated_email = auth_service_response_hash['email']
       authenticated_id = auth_service_response_hash['id']
-      authenticated_internal_user = Rails.application.config.authorized_internal_users.include?(authenticated_email)
-
-      if(internal_user_required && !authenticated_internal_user)
-        logger.error "ensure_authorized(): The authenticated user #{authenticated_email}:#{authenticated_id} is not an internal user. (auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers})"
-        render :status => 401, :json => {:error => I18n.t("401response")}
-        return
-      end
-
       set_authentication_info(authenticated_id, authenticated_email)
 
-      # SUCCESS - Control flow will now enter the controller's action
-      logger.info "ensure_authorized(): Auth service success. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{auth_service_response_hash['id']}, INTERNAL_USER: #{authenticated_internal_user}"
+      # SUCCESS - The user is authenticated
+      logger.info "ensure_authenticated(): Auth service success. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{auth_service_response_hash['id']}"
       return
 
     rescue => e
 
       if(defined? e.response)
         if(e.response.code == 401)
-          logger.error "ensure_authorized(): Not authorized. CODE: #{e.response.code}, RESPONSE: #{e.response}"
+          logger.error "ensure_authenticated(): Not authorized. CODE: #{e.response.code}, RESPONSE: #{e.response}"
           render :status => 401, :json => {:error => I18n.t("401response")}
           return
         end
-        logger.error "ensure_authorized(): Unexpected auth service response. CODE: #{e.response.code}, RESPONSE: #{e.response} (auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers})"
+        logger.error "ensure_authenticated(): Unexpected auth service response. CODE: #{e.response.code}, RESPONSE: #{e.response} (auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers})"
         render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
         return
       else
-        logger.error "ensure_authorized(): Unexpected error! auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers}, error = #{e}"
+        logger.error "ensure_authenticated(): Unexpected error! auth_url = #{auth_url}, auth_request_headers = #{auth_request_headers}, error = #{e}"
         render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
         return
       end
 
     end
   end
-
 
 end
