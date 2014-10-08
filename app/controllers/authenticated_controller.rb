@@ -10,10 +10,9 @@ class AuthenticatedController < ActionController::Base
   # controller's action. This allows access to the user info from within
   # the action in the controller once the filter processing is done.
   #
-  def set_authorization_info(authenticated_user_id, authenticated_email, internal_user)
+  def set_authentication_info(authenticated_user_id, authenticated_email)
     @authenticated_user_id = authenticated_user_id
     @authenticated_email = authenticated_email
-    @internal_user = internal_user
   end
 
 end
