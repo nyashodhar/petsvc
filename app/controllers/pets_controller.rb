@@ -3,6 +3,15 @@ class PetsController < AuthenticatedController
   include MongoIdHelper
 
   before_action :ensure_authenticated
+  before_action :ensure_owner_of_pet, only: [:update_pet]
+
+  def update_pet
+    #logger.info "*** update_pet(): @owned_pet = #{@owned_pet.inspect}"
+    pet_args = request.params[:pet]
+    #logger.info "*** update_pet(): pet_args = #{pet_args}"
+    head 204
+  end
+
 
   #######################################################
   # EXAMPLE LOCAL:
@@ -20,7 +29,7 @@ class PetsController < AuthenticatedController
     #
 
     pet = Pet.create(
-        id: SecureRandom.uuid,
+        pet_id: SecureRandom.uuid,
         name: pet_args[:name],
         birth_year: pet_args[:birth_year],
         creature_type: pet_args[:creature_type],

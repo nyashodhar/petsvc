@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   # PetsController
   #===============================
   post "pet", to: "pets#create_pet", as: 'create_pet'
+  put "pet/:pet_id", to: "pets#update_pet", as: 'update_pet'
 
   # ApplicationController:
   #===============================

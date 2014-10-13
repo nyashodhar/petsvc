@@ -29,11 +29,11 @@ class Pet
   include Mongoid::Document
 
   # ID
-  field :id, type: String, default: -> { SecureRandom.uuid }
-  validates_presence_of :id, message: I18n.t("field_is_required")
-  index({ id: 1 }, { unique: true, background: true })
+  field :pet_id, type: String, default: -> { SecureRandom.uuid }
+  validates_presence_of :pet_id, message: I18n.t("field_is_required")
+  index({ pet_id: 1 }, { unique: true, background: true })
 
-  field :_id, type: String, default: ->{ id }
+  field :_id, type: String, default: ->{ pet_id }
 
   # NAME
   field :name, type: String
@@ -86,10 +86,6 @@ class Pet
   #    minimum: 0, too_short: I18n.t("input_is_too_short"),
   #    maximum: 256, too_long: I18n.t("input_is_too_long")
   #}
-
-  #
-  # TODO: OWNER INVITATION TOKEN
-  #
 
   #
   # TODO: CREATOR USER ID (meta data only)
