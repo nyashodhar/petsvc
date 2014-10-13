@@ -5,6 +5,10 @@ class PetsController < AuthenticatedController
   before_action :ensure_authenticated
   before_action :ensure_owner_of_pet, only: [:update_pet]
 
+  #######################################################
+  # EXAMPLE LOCAL:
+  # curl -v -X PUT http://127.0.0.1:3000/pet/9d855750-db24-4f15-805b-aaf0309980b9 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: e4SnXXxoWd_Kxi67L-xf" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  #######################################################
   def update_pet
     #logger.info "*** update_pet(): @owned_pet = #{@owned_pet.inspect}"
     pet_args = request.params[:pet]
