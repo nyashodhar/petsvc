@@ -12,6 +12,8 @@
 
 class PetOwnership
 
+  include Mongoid::Document
+
   #
   # USER ID
   #

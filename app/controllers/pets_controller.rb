@@ -1,17 +1,16 @@
-class PetsController < ActionController::Base
+class PetsController < AuthenticatedController
 
   include MongoIdHelper
 
+  before_action :ensure_authenticated
+
   #######################################################
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def create_pet
 
     pet_args = request.params[:pet]
-
-    # TODO: If a pet ownership does not exist, it needs to be created.
-    # TODO: If a pet ownership exists
 
     # TODO: If this user owns too many pets, give a "412 Precondition Failed"
 
@@ -44,6 +43,26 @@ class PetsController < ActionController::Base
     rescue => e
       logger.error "Unexpected error when saving pet from args #{pet_args}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+    end
+
+    #
+    # The pet object was created, create a pet ownership
+    #
+
+    if(@authenticated_user_id.blank?)
+      logger.error "No authenticated user id present => unable to create pet ownership"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    pet_ownership = PetOwnership.create(
+        user_id: @authenticated_user_id,
+        pet_id: pet.id
+    )
+
+    if(!pet_ownership.valid?)
+      handle_mongoid_validation_error(pet_ownership)
+      return
     end
 
     # Success 201
