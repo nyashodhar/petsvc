@@ -1,6 +1,7 @@
 class PetsController < AuthenticatedController
 
   include MongoIdHelper
+  include PetBreedHelper
 
   before_action :ensure_authenticated
   before_action :ensure_owner_of_pet, only: [:update_pet]
@@ -37,28 +38,16 @@ class PetsController < AuthenticatedController
       @owned_pet.birth_year = pet_args[:birth_year]
     end
 
-    if(!pet_args[:creature_type].blank?)
+    if(creature_type_and_breed_valid_on_update?(pet_args[:creature_type], pet_args[:breed_bundle_id]))
+    else
+      return
+    end
 
-      #
-      # TODO: Validate the prefix of the breed bundle id with the type of pet.
-      # For example, if the pet is dog, the breed_bundle_id specified must exist
-      # in the dog resource bundle.
-      #
-
-      #
-      # If the creature type is specified, then we must also require that the
-      # breed is specified. Otherwise, the creature type could be changed
-      # from 'dog' to 'cat' while breed is still 'doberman' ...:-)
-      #
-
-      if(pet_args[:breed_bundle_id].blank?)
-        logger.error "Creature type specified, but no breed_bundle_id specified. pet_id = #{@owned_pet.pet_id}, logged in user = #{@authenticated_email}:#{@authenticated_user_id}"
-        errors_hash = {:breed_bundle_id => [I18n.t("field_is_required")]}
-        #{"error":{"breed_bundle_id":["Field is required"]}}
-        render :status => 422, :json => {:error => errors_hash}
-      end
-
+    if(!pet_args[:breed_bundle_id].blank?)
       @owned_pet.breed_bundle_id = pet_args[:breed_bundle_id]
+    end
+
+    if(!pet_args[:creature_type].blank?)
       @owned_pet.creature_type = pet_args[:creature_type]
     end
 

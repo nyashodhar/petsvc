@@ -31,3 +31,6 @@ en:
   input_is_too_short: "Input is too short"
   field_is_required: "Field is required"
   number_must_be_in_range: "Number must be in the range %{range}"
+  breed_bundle_id_incompatible_with_creature_type: "The breed specified is incompatible with the creature type"
+  breed_bundle_id_could_not_be_resolved: "The breed bundle id could not be resolved to a breed name"
+  creature_type_incompatible_with_breed: "The creature type specified is incompatible with the breed"
