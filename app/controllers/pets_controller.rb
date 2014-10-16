@@ -6,6 +6,16 @@ class PetsController < AuthenticatedController
   before_action :ensure_owner_of_pet, only: [:update_pet]
 
   #######################################################
+  # Updates an existing pet object.
+  #
+  # 401:
+  #  - Authenticated failed (user not logged in)
+  #  - Authorization failed (the logged in user is not owner of the pet)
+  # 422:
+  #  - One or more of the fields in the pet object were invalid
+  # 500:
+  #  - An unexpected error occurred while creating the pet object
+  #
   # EXAMPLE LOCAL:
   # curl -v -X PUT http://127.0.0.1:3000/pet/9d855750-db24-4f15-805b-aaf0309980b9 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: e4SnXXxoWd_Kxi67L-xf" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
@@ -18,14 +28,26 @@ class PetsController < AuthenticatedController
 
 
   #######################################################
+  # Creates a new pet object. When the pet object has
+  # successfully created, a pet ownership object is created
+  # to record that the authenticated user is an owner of the
+  # pet that has been created.
+  #
+  # 401:
+  #  - Authenticated failed
+  # 412:
+  #  - The user owns too many pets (TODO)
+  # 422:
+  #  - One or more of the fields in the pet object were invalid
+  # 500:
+  #  - An unexpected error occurred while creating the pet object
+  #
   # EXAMPLE LOCAL:
   # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def create_pet
 
     pet_args = request.params[:pet]
-
-    # TODO: If this user owns too many pets, give a "412 Precondition Failed"
 
     #
     # TODO: Validate the prefix of the breed bundle id with the type of pet.
@@ -76,6 +98,16 @@ class PetsController < AuthenticatedController
     if(!pet_ownership.valid?)
       handle_mongoid_validation_error(pet_ownership)
       return
+    end
+
+
+    # TODO: Hmm, is the save needed looks like the doc was created without it?
+
+    begin
+      pet_ownership.save!
+    rescue => e
+      logger.error "Unexpected error when saving pet ownership for pet (#{@authenticated_email}:#{@authenticated_id}), args #{pet_args}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
     end
 
     # Success 201
