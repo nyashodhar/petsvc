@@ -9,6 +9,9 @@
 # List all the objects in a collection in the current db:
 #   db.pet_ownerships.find()
 #
+# Find the pet ownerships for a given user id
+#   db.pet_ownerships.find( { user_id: 12 } )
+#
 
 class PetOwnership
 

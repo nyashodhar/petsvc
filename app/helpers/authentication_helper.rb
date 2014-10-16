@@ -53,11 +53,11 @@ module AuthenticationHelper
 
       # Make the id of the authenticated user available in controller instance variables:
       authenticated_email = auth_service_response_hash['email']
-      authenticated_id = auth_service_response_hash['id']
-      set_authentication_info(authenticated_id, authenticated_email)
+      authenticated_user_id = auth_service_response_hash['id']
+      set_authentication_info(authenticated_user_id, authenticated_email)
 
       # SUCCESS - The user is authenticated
-      logger.info "ensure_authenticated(): Auth service success. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{auth_service_response_hash['id']}"
+      logger.info "ensure_authenticated(): Auth service success. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{authenticated_user_id}"
       return
 
     rescue => e

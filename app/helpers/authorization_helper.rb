@@ -36,12 +36,12 @@ module AuthorizationHelper
     authenticated_internal_user = Rails.application.config.authorized_internal_users.include?(@authenticated_email)
 
     if(!authenticated_internal_user)
-      logger.error "ensure_authorized(): The authenticated user #{@authenticated_email}:#{@authenticated_id} is not an internal user."
+      logger.error "ensure_internal_user(): The authenticated user #{@authenticated_email}:#{@authenticated_user_id} is not an internal user."
       render :status => 401, :json => {:error => I18n.t("401response")}
       return
     end
 
-    logger.info "ensure_authorized(): The authenticated user #{@authenticated_email} is an internal user"
+    logger.info "ensure_internal_user(): The authenticated user #{@authenticated_email}:#{@authenticated_user_id} is an internal user"
   end
 
 
