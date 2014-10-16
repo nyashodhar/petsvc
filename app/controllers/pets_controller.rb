@@ -54,7 +54,7 @@ class PetsController < AuthenticatedController
     begin
       pet.save!
     rescue => e
-      logger.error "Unexpected error when saving pet from args #{pet_args}, error: #{e.inspect}"
+      logger.error "create_pet(): Unexpected error when saving pet from args #{pet_args}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
@@ -64,7 +64,7 @@ class PetsController < AuthenticatedController
     #
 
     if(@authenticated_user_id.blank?)
-      logger.error "No authenticated user id present => unable to create pet ownership"
+      logger.error "create_pet(): No authenticated user id present => unable to create pet ownership"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
@@ -82,12 +82,12 @@ class PetsController < AuthenticatedController
     begin
       pet_ownership.save!
     rescue => e
-      logger.error "Unexpected error when saving pet ownership for pet #{pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, pet_args #{pet_args}, error: #{e.inspect}"
+      logger.error "create_pet(): Unexpected error when saving pet ownership for pet #{pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, pet_args #{pet_args}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
-    logger.info "Pet #{pet.pet_id} created by user #{@authenticated_email}:#{@authenticated_user_id}"
+    logger.info "create_pet(): Pet #{pet.pet_id} created by user #{@authenticated_email}:#{@authenticated_user_id}"
     render :status => 201, :json => {:id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
   end
 
@@ -142,13 +142,47 @@ class PetsController < AuthenticatedController
     begin
       @owned_pet.save!
     rescue => e
-      logger.error "Unexpected error when updating pet #{@owned_pet.pet_id}. User #{@authenticated_email}:#{@authenticated_user_id}) - args #{pet_args} - error: #{e.inspect}"
+      logger.error "update_pet(): Unexpected error when updating pet #{@owned_pet.pet_id}. User #{@authenticated_email}:#{@authenticated_user_id}) - args #{pet_args} - error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
-    logger.info "Pet #{@owned_pet.pet_id} updated by user #{@authenticated_email}:#{@authenticated_user_id}"
+    logger.info "update_pet(): Pet #{@owned_pet.pet_id} updated by user #{@authenticated_email}:#{@authenticated_user_id}"
     head 204
+  end
+
+
+  #######################################################
+  #
+  # Get the pet ids of all the pets owned by the logged
+  # in users
+  #
+  # 401:
+  #  - Authenticated failed (user not logged in)
+  # 500:
+  #  - An unexpected error occurred while fetching the resource
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X GET http://127.0.0.1:3000/pet/owned -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: dQPysiXrKhzdpxfKXfau"
+  #######################################################
+  def get_owned_pet_ids_for_logged_in_user
+
+    owned_pet_ids = Array.new
+
+    begin
+      pet_ownerships = PetOwnership.where(user_id: @authenticated_user_id)
+      pet_ownerships.to_a.each do |pet_ownership|
+        owned_pet_ids.push(pet_ownership.pet_id)
+      end
+    rescue => e
+      logger.error "get_owned_pet_ids_for_logged_in_user(): Unexpected error when querying for pets owned by user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    logger.info "get_owned_pet_ids_for_logged_in_user(): Found #{owned_pet_ids.length} pet ids owned by user  #{@authenticated_email}:#{@authenticated_user_id}"
+
+    render :status => 200, :json => {:pet_ids => owned_pet_ids}
   end
 
 end
