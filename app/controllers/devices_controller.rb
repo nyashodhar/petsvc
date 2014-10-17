@@ -183,4 +183,25 @@ class DevicesController < AuthenticatedController
     head 204
   end
 
+  #######################################################
+  # Get all the registered devices that belong to the
+  # logged in user.
+  #
+  # It's assumed that it's not allowed for a user to remove
+  # their ownership of a pet without first removing the
+  # any device registration for that pet. Therefore, for this
+  # call we will do any double check to verify the ownership
+  # of each pet for which this user has a device registered.
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X GET http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
+  #######################################################
+  def get_all_device_registrations_for_logged_in_user
+    # TODO
+    head 204
+  end
+
 end
