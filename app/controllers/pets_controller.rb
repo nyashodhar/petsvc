@@ -179,7 +179,7 @@ class PetsController < AuthenticatedController
       return
     end
 
-    logger.info "get_owned_pet_ids_for_logged_in_user(): Found #{owned_pet_ids.length} pet ids owned by user  #{@authenticated_email}:#{@authenticated_user_id}"
+    logger.info "get_owned_pet_ids_for_logged_in_user(): Found #{owned_pet_ids.length} pet ids owned by user #{@authenticated_email}:#{@authenticated_user_id}"
 
     render :status => 200, :json => {:pet_ids => owned_pet_ids}
   end

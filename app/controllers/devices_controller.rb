@@ -57,6 +57,9 @@ class DevicesController < AuthenticatedController
   # 404:
   # - A device matching the device id could not be found
   #
+  # 412:
+  # - This user has too many devices registered (TODO)
+  #
   # 409:
   # - Another device has already been registered for this pet
   # - This device has already been registered for another pet
@@ -200,8 +203,22 @@ class DevicesController < AuthenticatedController
   # curl -v -X GET http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
   #######################################################
   def get_all_device_registrations_for_logged_in_user
-    # TODO
-    head 204
+
+    devices_for_response = Array.new
+
+    begin
+      registered_devices = Device.where(user_id: @authenticated_user_id)
+      registered_devices.to_a.each do |registered_device|
+        devices_for_response.push({:device_id => registered_device.serial, :pet_id => registered_device.pet_id})
+      end
+    rescue => e
+      logger.error "get_all_device_registrations_for_logged_in_user(): Unexpected error when querying for device registrations for user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    logger.info "get_all_device_registrations_for_logged_in_user(): Found #{devices_for_response.length} device registrations for user #{@authenticated_email}:#{@authenticated_user_id}"
+    render :status => 200, :json => {:devices => devices_for_response}
   end
 
 end
