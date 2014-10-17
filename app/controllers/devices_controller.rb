@@ -11,7 +11,7 @@ class DevicesController < AuthenticatedController
 
   #######################################################
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"serial":"234234DTWERTSDF"}'
+  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: yVumBzj726eA9ov3nxr5" -d '{"serial":"234234DTWERTSDF"}'
   #######################################################
   def create
 
@@ -24,25 +24,19 @@ class DevicesController < AuthenticatedController
       return
     end
 
-    device = Device.create(
-        serial: device_args[:serial]
-    )
-
-    #
-    # If the object fails validation, give a 422 error
-    # If anything else fails, give 500 error
-    #
-
-    if(!device.valid?)
-      handle_mongoid_validation_error(device, device_args)
-      return
-    end
-
     begin
+      device = Device.create(
+          serial: device_args[:serial]
+      )
+      if(!device.valid?)
+        handle_mongoid_validation_error(device, device_args)
+        return
+      end
       device.save!
     rescue => e
-      logger.error "Unexpected error when saving document #{device_args}, error: #{e.inspect}"
+      logger.error "Unexpected error when creating device, args #{device_args}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
     end
 
     # Success 201

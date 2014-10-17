@@ -10,7 +10,8 @@
 #
 # To create the index:
 #
-#   rake db:mongoid:create_indexes
+#   rake db:mongoid:create_indexes RAILS_ENV=test
+#   rake db:mongoid:create_indexes RAILS_ENV=development
 #
 # This page describes how to override the _id field in an object:
 #
@@ -31,6 +32,12 @@
 # Drop db:
 #   db.dropDatabase();
 #
+# List all the objects in a collection in the current db:
+#   db.devices.find()
+#
+# Find the pet ownerships for a given user id
+#   db.device_registrations.find( { user_id: 12 } )
+
 ####################################################
 
 class Device
@@ -56,5 +63,26 @@ class Device
   #
   # TODO: Add device version field
   #
+
+  #
+  # REGISTRATION_USER_ID
+  #
+  field :user_id, type: Integer
+
+  #
+  # REGISTRATION_PET_ID
+  #
+  # Note on sparse indexes in mongo:
+  #   http://stackoverflow.com/questions/8608567/sparse-indexes-and-null-values-in-mongo
+  #
+  # How to remove a field from a doc:
+  #   https://coderwall.com/p/wcx4pq
+  #
+
+  field :pet_id, type: String
+  index({ pet_id: 1 }, { unique: true, background: true, sparse: true })
+  validates :pet_id, length: {
+      maximum: 256, too_long: I18n.t("input_is_too_long")
+  }
 
 end

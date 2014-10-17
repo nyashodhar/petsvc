@@ -1,5 +1,13 @@
 
 #
+# To create the indexes:
+#
+#   rake db:mongoid:create_indexes RAILS_ENV=test
+#   rake db:mongoid:create_indexes RAILS_ENV=development
+#
+# In mongo shell:
+# ====================
+#
 # Switch to a db:
 #   use petsvc_development
 #
