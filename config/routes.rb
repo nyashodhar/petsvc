@@ -7,6 +7,16 @@ Rails.application.routes.draw do
   # DevicesController
   #===============================
   post "device", to: "devices#create", as: 'create_device'
+  post "device/registration", to: "devices#register_device", as: 'register_device'
+  delete "device/registration/:device_id", to: "devices#deregister_device", as: 'deregister_device'
+  get "device/registration", to: "devices#get_all_device_registrations_for_logged_in_user", as: 'get_all_device_registrations_for_logged_in_user'
+
+  # PetsController
+  #===============================
+  post "pet", to: "pets#create_pet", as: 'create_pet'
+  put "pet/:pet_id", to: "pets#update_pet", as: 'update_pet'
+  get "pet/owned", to: "pets#get_owned_pet_ids_for_logged_in_user", as: 'get_owned_pet_ids_for_logged_in_user'
+  get "pet/:pet_id", to: "pets#get_pet", as: "get_pet"
 
   # ApplicationController:
   #===============================
