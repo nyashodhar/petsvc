@@ -101,7 +101,7 @@ module AuthorizationHelper
 
     set_owned_pet(pet)
 
-    logger.info "ensure_owner_of_pet(): The authenticated user #{@authenticated_email}:#{@authenticated_user_id} is the owner of pet #{pet_id}"
+    logger.info "ensure_owner_of_pet(): The authenticated user #{@authenticated_email}:#{@authenticated_user_id} is an owner of pet #{pet_id}"
   end
 
 end
