@@ -50,7 +50,7 @@ class DevicesController < AuthenticatedController
   #
   # 401:
   # - Authentication failed - user is not logged in
-  # - Authorization failed - user is not owner of the pet
+  # - Authorization failed - user is not an owner of the pet to which the device is being registered
   #
   # 404:
   # - A device matching the device id could not be found
@@ -60,8 +60,7 @@ class DevicesController < AuthenticatedController
   # - This device has already been registered for another pet
   #
   # 500:
-  # - An unexpected error occurred while creating the
-  #   device registration
+  # - An unexpected error occurred while creating the device registration
   #
   # EXAMPLE LOCAL:
   # curl -v -X POST http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"device_id":"234234DTWERTSDF","pet_id":"9d855750-db24-4f15-805b-aaf0309980b9"}'
@@ -70,5 +69,28 @@ class DevicesController < AuthenticatedController
     # TODO
     head 204
   end
+
+  #######################################################
+  # Deregister a device. This removes the registered user id
+  # and the registered pet id from a device document.
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  # - Authorization failed - user is not an owner of the pet to which the device is registered
+  #
+  # 404:
+  # - A device matching the device id could not be found
+  #
+  # 500:
+  # - An unexpected error occurred while deregistering the device
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X DELETE http://127.0.0.1:3000/device/registration/234234DTWERTSDF -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn"
+  #######################################################
+  def deregister_device
+    # TODO
+    head 204
+  end
+
 
 end

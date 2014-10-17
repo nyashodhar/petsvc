@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   #===============================
   post "device", to: "devices#create", as: 'create_device'
   post "device/registration", to: "devices#register_device", as: 'register_device'
+  delete "device/registration/:device_id", to: "devices#deregister_device", as: 'deregister_device'
 
   # PetsController
   #===============================
