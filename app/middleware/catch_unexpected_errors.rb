@@ -20,6 +20,8 @@ class CatchUnexpectedErrors
       return handleError(error)
     rescue RuntimeError => error
       return handleError(error)
+    rescue ActionController::RoutingError => error
+      return handleError(error)
     end
   end
 
