@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   # DevicesController
   #===============================
   post "device", to: "devices#create", as: 'create_device'
+  post "device/registration", to: "devices#register_device", as: 'register_device'
 
   # PetsController
   #===============================

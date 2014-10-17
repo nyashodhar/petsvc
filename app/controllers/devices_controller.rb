@@ -48,4 +48,33 @@ class DevicesController < AuthenticatedController
     # Success 201
     render :status => 201, :json => {:serial => device.serial}
   end
+
+
+  #######################################################
+  # Register a device. This creates a mapping between
+  # a pet, a user and a device.
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  # - Authorization failed - user is not owner of the pet
+  #
+  # 404:
+  # - A device matching the device id could not be found
+  #
+  # 409:
+  # - Another device has already been registered for this pet
+  # - This device has already been registered for another pet
+  #
+  # 500:
+  # - An unexpected error occurred while creating the
+  #   device registration
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X POST http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"device_id":"234234DTWERTSDF","pet_id":"9d855750-db24-4f15-805b-aaf0309980b9"}'
+  #######################################################
+  def register_device
+    # TODO
+    head 204
+  end
+
 end
