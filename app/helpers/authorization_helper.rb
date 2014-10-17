@@ -48,7 +48,9 @@ module AuthorizationHelper
   ################################################
   #
   # Ensures that the authenticated user has an ownership
-  # record for the pet identified by the pet_id path variable.
+  # record for a pet. The id of the pet can originate
+  # from the request, or the pet id could have been
+  # determined from another resource earlier by another filter.
   #
   # This filter assumes that the authentication filter (ensure_authenticated)
   # has already been successfully applied.
@@ -69,7 +71,7 @@ module AuthorizationHelper
   ################################################
   def ensure_owner_of_pet
 
-    pet_id = params[:pet_id]
+    pet_id = get_pet_id_for_authorization
 
     if(pet_id.blank?)
       logger.error "ensure_owner_of_pet(): No pet_id path variable in the request => unable to determine pet ownership"
@@ -102,6 +104,68 @@ module AuthorizationHelper
     set_owned_pet(pet)
 
     logger.info "ensure_owner_of_pet(): The authenticated user #{@authenticated_email}:#{@authenticated_user_id} is an owner of pet #{pet_id}"
+  end
+
+
+  ################################################
+  #
+  # This filter resolves a pet id from a device object so
+  # that the pet id can be used for authorization purposes
+  # by subsequent filters.
+  #
+  # 422:
+  # - Device id is missing from request
+  #
+  # 401:
+  # - No device found for device id
+  # - The device is not registered, making pet-id authorization impossible
+  #
+  # 500:
+  # - The device is registered but has no user id
+  # - The device is registered but has no pet id
+  #
+  ################################################
+  def resolve_pet_id_from_device_registration
+
+    device_id = params[:device_id]
+
+    if(device_id.blank?)
+      logger.error "resolve_pet_id_from_device_registration(): No device_id provided, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      errors_hash = {:device_id => [I18n.t("field_is_required")]}
+      render :status => 422, :json => {:error => errors_hash}
+      return
+    end
+
+    begin
+      device = Device.find_by(serial: device_id)
+    rescue Mongoid::Errors::DocumentNotFound => e
+      logger.error "resolve_pet_id_from_device_registration(): No device found for device_id #{device_id}, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      render :status => 401, :json => {:error => I18n.t("401response")}
+      return
+    end
+
+    if(device.pet_id.blank? && device.user_id.blank?)
+      logger.error "resolve_pet_id_from_device_registration(): The device #{device_id} is not registered to any pet or user, resolution of pet id for authorization not possible, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      render :status => 401, :json => {:error => I18n.t("401response")}
+      return
+    end
+
+    if(device.user_id.blank?)
+      logger.error "resolve_pet_id_from_device_registration(): The device #{device_id} appears to be registered, but has no user id. This should never happen, device = #{device.inspect}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    if(device.pet_id.blank?)
+      logger.error "resolve_pet_id_from_device_registration(): The device #{device_id} appears to be registered, but has no pet id. This should never happen, device = #{device.inspect}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    set_pet_id_to_authorize(device.pet_id)
+    set_device_resolved_from_request(device)
+
+    logger.info "resolve_pet_id_from_device_registration(): resolved pet id #{device.pet_id} to authorize for user #{@authenticated_email}:#{@authenticated_user_id} from device #{device_id}"
   end
 
 end
