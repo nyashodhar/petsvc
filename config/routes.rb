@@ -10,6 +10,7 @@ Rails.application.routes.draw do
   post "device/registration", to: "devices#register_device", as: 'register_device'
   delete "device/registration/:device_id", to: "devices#deregister_device", as: 'deregister_device'
   get "device/registration", to: "devices#get_all_device_registrations_for_logged_in_user", as: 'get_all_device_registrations_for_logged_in_user'
+  get "device/registration/pet/:pet_id", to: "devices#get_device_registration_for_pet", as: 'get_device_registration_for_pet'
 
   # PetsController
   #===============================

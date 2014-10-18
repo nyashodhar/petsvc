@@ -141,14 +141,14 @@ class DevicesController < AuthenticatedController
 
 
   #######################################################
-  # Deregister a device. This removes the registered user id
-  # and the registered pet id from a device document.
+  # Deregister a device given a device id. This removes the registered user id
+  # and the registered pet_id from that device document.
   #
   # 401:
   # - Authentication failed - user is not logged in
-  # - No device found for device id
-  # - The device is not registered, making pet-id authorization impossible
-  # - No device found for device id, making pet ownership authorization impossible
+  # - Authorization failed - No device found for device id
+  # - Authorization failed - The device is not registered, making pet-id authorization impossible
+  # - Authorization failed - No device found for device id, making pet ownership authorization impossible
   # - Authorization failed - user is not an owner of the pet to which the device is registered
   #
   # 422:
@@ -220,5 +220,26 @@ class DevicesController < AuthenticatedController
     logger.info "get_all_device_registrations_for_logged_in_user(): Found #{devices_for_response.length} device registrations for user #{@authenticated_email}:#{@authenticated_user_id}"
     render :status => 200, :json => {:devices => devices_for_response}
   end
+
+
+  #######################################################
+  # Get the device registration information for a given
+  # pet.
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  # - Authorization failed - The logged in user is not an owner of the pet
+  #
+  # 404:
+  # - No device registration is found for the pet
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X GET http://127.0.0.1:3000/device/registration/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744 -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
+  #######################################################
+  def get_device_registration_for_pet
+    # TODO
+    head 204
+  end
+
 
 end
