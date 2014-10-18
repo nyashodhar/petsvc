@@ -130,7 +130,7 @@ module AuthorizationHelper
     device_id = params[:device_id]
 
     if(device_id.blank?)
-      logger.error "resolve_pet_id_from_device_registration(): No device_id provided, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "resolve_pet_id_from_device_registration(): No device_id provided, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       errors_hash = {:device_id => [I18n.t("field_is_required")]}
       render :status => 422, :json => {:error => errors_hash}
       return
@@ -139,7 +139,7 @@ module AuthorizationHelper
     begin
       device = Device.find_by(serial: device_id)
     rescue Mongoid::Errors::DocumentNotFound => e
-      logger.error "resolve_pet_id_from_device_registration(): No device found for device_id #{device_id}, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "resolve_pet_id_from_device_registration(): No device found for device_id #{device_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 401, :json => {:error => I18n.t("401response")}
       return
     end

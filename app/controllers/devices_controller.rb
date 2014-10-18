@@ -2,16 +2,13 @@ class DevicesController < AuthenticatedController
 
   include MongoIdHelper
 
-  #
-  # Note: This filter will do a downstream request to the auth service to
-  # check that there is an external user sign-in for the auth token
-  #
   before_action :ensure_authenticated
   before_action :ensure_internal_user, only: [:create]
   before_action :resolve_pet_id_from_device_registration, only: [:deregister_device]
-  before_action :ensure_owner_of_pet, only: [:register_device, :deregister_device]
+  before_action :ensure_owner_of_pet, only: [:register_device, :deregister_device, :get_device_registration_for_pet]
 
   #######################################################
+  # TODO: Add an API spec here
   # EXAMPLE LOCAL:
   # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: KBbFPZGrFQvGPyduhzJG" -d '{"serial":"234234DTWERTSDH"}'
   #######################################################
@@ -77,7 +74,7 @@ class DevicesController < AuthenticatedController
 
     device_id = request.params[:device_id]
     if(device_id.blank?)
-      logger.error "register_device(): No device_id provided, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device(): No device_id provided, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 422, :json => {:error => I18n.t("422response")}
       return
     end
@@ -85,7 +82,7 @@ class DevicesController < AuthenticatedController
     begin
       device = Device.find_by(serial: device_id)
     rescue Mongoid::Errors::DocumentNotFound => e
-      logger.error "register_device(): No device found for device_id #{device_id}, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device(): No device found for device_id #{device_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
       return
     end
@@ -95,13 +92,13 @@ class DevicesController < AuthenticatedController
 
       # If the device happens to be registered for the exact same pet and user, avoid the 409
       if(device.pet_id.eql?(@owned_pet.pet_id) && (device.user_id.to_i == @authenticated_user_id.to_i))
-        logger.info "register_device(): Special case - This device (#{device.serial}) has already been registered for the pet and user in this request, no action required, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+        logger.info "register_device(): Special case - This device (#{device.serial}) has already been registered for the pet and user in this request, no action required, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
         render :status => 201, :json => {:serial => device.serial, :pet_id => device.pet_id, :user_id => device.user_id}
         return
       end
 
       # This device has been registered and (user_id, pet_id) does not match combo in our request
-      logger.error "register_device(): This device (#{device.serial}) has already been registered for pet (#{device.pet_id}) for user #{device.user_id}, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device(): This device (#{device.serial}) has already been registered for pet (#{device.pet_id}) for user #{device.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 409, :json => {:error => I18n.t("409response")}
       return
     else
@@ -111,7 +108,7 @@ class DevicesController < AuthenticatedController
     # Has another device already been registered for this pet?
     begin
       device_already_registered_for_this_pet = Device.find_by(pet_id: @owned_pet.pet_id)
-      logger.error "register_device(): A device (#{device_already_registered_for_this_pet.serial}) is already registered for this pet (#{@owned_pet.pet_id}) for user #{device_already_registered_for_this_pet.user_id}, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device(): A device (#{device_already_registered_for_this_pet.serial}) is already registered for this pet (#{@owned_pet.pet_id}) for user #{device_already_registered_for_this_pet.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 409, :json => {:error => I18n.t("409response")}
       return
     rescue Mongoid::Errors::DocumentNotFound => e
@@ -226,6 +223,10 @@ class DevicesController < AuthenticatedController
   # Get the device registration information for a given
   # pet.
   #
+  # Note: If the pet has multiple owners, it's possible that
+  # user id in the device registration is not the user id
+  # of the currently logged in user. That's OK.
+  #
   # 401:
   # - Authentication failed - user is not logged in
   # - Authorization failed - The logged in user is not an owner of the pet
@@ -233,13 +234,30 @@ class DevicesController < AuthenticatedController
   # 404:
   # - No device registration is found for the pet
   #
+  # 500:
+  # - User id is missing from the device registered for the given pet id
+  #
   # EXAMPLE LOCAL:
   # curl -v -X GET http://127.0.0.1:3000/device/registration/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744 -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
   #######################################################
   def get_device_registration_for_pet
-    # TODO
-    head 204
-  end
 
+    begin
+      device = Device.find_by(pet_id: @owned_pet.pet_id)
+    rescue Mongoid::Errors::DocumentNotFound => e
+      logger.info "get_device_registration_for_pet(): No device is registered for the pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
+      return
+    end
+
+    if(device.user_id.blank?)
+      logger.error "get_device_registration_for_pet(): The device #{device.serial} appears to be registered, but has no user id. This should never happen, device = #{device.inspect}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    logger.info "get_device_registration_for_pet(): Device registration located for pet #{@owned_pet.pet_id}, device id #{device.serial}, device registered to user #{device.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    render :status => 200, :json => {:device_id => device.serial, :pet_id => device.pet_id, :user_id => device.user_id}
+  end
 
 end
