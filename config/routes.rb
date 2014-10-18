@@ -16,7 +16,8 @@ Rails.application.routes.draw do
   #===============================
   post "pet", to: "pets#create_pet", as: 'create_pet'
   put "pet/:pet_id", to: "pets#update_pet", as: 'update_pet'
-  get "pet/owned", to: "pets#get_owned_pet_ids_for_logged_in_user", as: 'get_owned_pet_ids_for_logged_in_user'
+  delete "pet/:pet_id/ownership", to: "pets#remove_pet_ownership_for_logged_in_user", as: 'remove_pet_ownership_for_logged_in_user'
+  get "pet/ownership", to: "pets#get_owned_pet_ids_for_logged_in_user", as: 'get_owned_pet_ids_for_logged_in_user'
   get "pet/:pet_id", to: "pets#get_pet", as: "get_pet"
 
   # ApplicationController:

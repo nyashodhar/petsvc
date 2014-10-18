@@ -153,16 +153,49 @@ class PetsController < AuthenticatedController
 
 
   #######################################################
+  # Remove the logged in user's ownership for a given pet id
+  #
+  # Since the existence of a pet ownership for the given
+  # pet id is proof that the user is indeed currently an owner
+  # of the pet, the 'ensure_owner_of_pet' filter is not applied
+  # for this method.
+  #
+  # 401:
+  #  - Authentication failed - user not logged in
+  #
+  # 404:
+  #  - No pet ownership for the given pet was found for the
+  #    logged in user
+  #
+  # 409:
+  #  - A device registration for this pet by the logged in user
+  #    exists. This registration must be removed before the
+  #    user is allowed to remove the ownership for the pet.
+  #
+  # 500:
+  #  - An unexpected error occurred while removing the pet
+  #    ownership.
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X DELETE http://127.0.0.1:3000/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
+  #######################################################
+  def remove_pet_ownership_for_logged_in_user
+    # TODO
+    head 204
+  end
+
+
+  #######################################################
   # Get the pet ids of all the pets owned by the logged
   # in users
   #
   # 401:
-  #  - Authenticated failed (user not logged in)
+  #  - Authentication failed - user not logged in
   # 500:
   #  - An unexpected error occurred while fetching the resource
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet/owned -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: dQPysiXrKhzdpxfKXfau"
+  # curl -v -X GET http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
   #######################################################
   def get_owned_pet_ids_for_logged_in_user
 
