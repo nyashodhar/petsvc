@@ -20,6 +20,11 @@ Rails.application.routes.draw do
   get "pet/ownership", to: "pets#get_owned_pet_ids_for_logged_in_user", as: 'get_owned_pet_ids_for_logged_in_user'
   get "pet/:pet_id", to: "pets#get_pet", as: "get_pet"
 
+  # PetBreedsController
+  #===============================
+  get "creature/:creature_type/breed/:breed_bundle_id", to: "petbreeds#get_breed_for_breed_bundle_id", as: 'get_breed_for_breed_bundle_id'
+  get "creature/:creature_type", to: "petbreeds#get_all_breeds_for_creature_type", as: 'get_all_breeds_for_creature_type'
+
   # ApplicationController:
   #===============================
   match "*path", to: "application#not_found", via: :all
