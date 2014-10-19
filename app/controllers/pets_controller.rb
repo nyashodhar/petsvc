@@ -22,7 +22,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while creating the pet object
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: qjWSpXyqmvvQnqM8Ujpn" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def create_pet
 
@@ -88,7 +88,7 @@ class PetsController < AuthenticatedController
     end
 
     logger.info "create_pet(): Pet #{pet.pet_id} created by user #{@authenticated_email}:#{@authenticated_user_id}"
-    render :status => 201, :json => {:id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
+    render :status => 201, :json => {:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
   end
 
 
@@ -192,7 +192,7 @@ class PetsController < AuthenticatedController
   # 401:
   #  - Authentication failed - user not logged in
   # 500:
-  #  - An unexpected error occurred while fetching the resource
+  #  - An unexpected error occurred while fetching the pet ownerships
   #
   # EXAMPLE LOCAL:
   # curl -v -X GET http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
@@ -207,7 +207,7 @@ class PetsController < AuthenticatedController
         owned_pet_ids.push(pet_ownership.pet_id)
       end
     rescue => e
-      logger.error "get_owned_pet_ids_for_logged_in_user(): Unexpected error when querying for pets owned by user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      logger.error "get_owned_pet_ids_for_logged_in_user(): Unexpected error when querying for pet ownerships for user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
@@ -223,14 +223,40 @@ class PetsController < AuthenticatedController
   # 401:
   #  - Authentication failed - user not logged in
   # 500:
-  #  - An unexpected error occurred while fetching the resource
+  #  - An unexpected error occurred while fetching the owned pets
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: ej88B6PVzkJbs5hgnaih"
+  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
   #######################################################
   def get_owned_pets_for_logged_in_user
-    # TODO
-    head 204
+
+    owned_pet_ids = Array.new
+
+    begin
+      pet_ownerships = PetOwnership.where(user_id: @authenticated_user_id)
+      pet_ownerships.to_a.each do |pet_ownership|
+        owned_pet_ids.push(pet_ownership.pet_id)
+      end
+    rescue => e
+      logger.error "get_owned_pets_for_logged_in_user(): Unexpected error when querying for pet ownerships for user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    owned_pets = Array.new
+    owned_pet_ids.each do | pet_id |
+      begin
+        pet = Pet.find_by(pet_id: pet_id)
+        owned_pets.push({:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams})
+      rescue Mongoid::Errors::DocumentNotFound => e
+        logger.error "get_owned_pets_for_logged_in_user(): An ownership for pet #{pet_id} was found for user #{@authenticated_email}:#{@authenticated_user_id}, but the pet does not exist!"
+        render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+        return
+      end
+    end
+
+    logger.info "get_owned_pets_for_logged_in_user(): Found #{owned_pets.length} pets owned by user #{@authenticated_email}:#{@authenticated_user_id}"
+    render :status => 200, :json => {:pets => owned_pets}
   end
 
   #######################################################
@@ -256,7 +282,7 @@ class PetsController < AuthenticatedController
       return
     end
     logger.info "get_pet(): Found pet for pet id #{pet_id} for logged in user #{@authenticated_email}:#{@authenticated_user_id}"
-    render :status => 200, :json => {:id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
+    render :status => 200, :json => {:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
   end
 
 end
