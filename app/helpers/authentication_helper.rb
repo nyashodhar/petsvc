@@ -42,7 +42,11 @@ module AuthenticationHelper
 
     begin
 
+      start_time = Time.now
       auth_service_response = RestClient.get(auth_url, auth_request_headers)
+      end_time = Time.now
+      milliseconds_spent_in_auth = ((end_time - start_time)*1000).to_i
+
       auth_service_response_hash = JSON.parse(auth_service_response)
 
       if(auth_service_response_hash['authentication_token'].blank? || !auth_service_response_hash['authentication_token'].eql?(token))
@@ -57,7 +61,7 @@ module AuthenticationHelper
       set_authentication_info(authenticated_user_id, authenticated_email)
 
       # SUCCESS - The user is authenticated
-      logger.info "ensure_authenticated(): Auth service success. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{authenticated_user_id}"
+      logger.info "ensure_authenticated(): Auth service success in #{milliseconds_spent_in_auth}ms. CODE: #{auth_service_response.code}, EMAIL: #{authenticated_email}, USERID: #{authenticated_user_id}"
       return
 
     rescue => e
