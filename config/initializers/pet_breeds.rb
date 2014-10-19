@@ -21,7 +21,13 @@ cat_breeds_en = "#{Rails.root}/config/locales/cats_en.yml"
 dog_breeds_yaml = YAML::load_file(dog_breeds_en)
 $dog_breeds = Set.new(dog_breeds_yaml["en"].keys)
 
+# Remove creature name, since it's not a breed, but regular resource bundle item
+$dog_breeds.delete("dog")
+
 cat_breeds_yaml = YAML::load_file(cat_breeds_en)
 $cat_breeds = Set.new(cat_breeds_yaml["en"].keys)
+
+# Remove creature name, since it's not a breed, but regular resource bundle item
+$cat_breeds.delete("cat")
 
 STDOUT.write "=> Pet Breeds Initializer: Loaded #{$dog_breeds.size} dog breed bundle ids and #{$cat_breeds.size} cat breed bundle ids from resource bundle\n"

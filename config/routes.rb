@@ -23,7 +23,7 @@ Rails.application.routes.draw do
   # PetBreedsController
   #===============================
   get "breed/:breed_bundle_id", to: "petbreeds#get_breed_for_breed_bundle_id", as: 'get_breed_for_breed_bundle_id'
-  get "creature/:creature_type", to: "petbreeds#get_all_breeds_for_creature_type", as: 'get_all_breeds_for_creature_type'
+  get "breed/creature/:creature_type", to: "petbreeds#get_all_breeds_for_creature_type", as: 'get_all_breeds_for_creature_type'
 
   # ApplicationController:
   #===============================
