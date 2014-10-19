@@ -68,7 +68,7 @@ class DevicesController < AuthenticatedController
   # - An unexpected error occurred while creating the device registration
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: ej88B6PVzkJbs5hgnaih" -d '{"device_id":"234234DTWERTSDF","pet_id":"0bf1afea-50b6-4bf6-a1c9-600796a39744"}'
+  # curl -v -X POST http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"device_id":"234234DTWERTSDF","pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
   #######################################################
   def register_device
 

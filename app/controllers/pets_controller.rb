@@ -177,10 +177,40 @@ class PetsController < AuthenticatedController
   #    ownership.
   #
   # EXAMPLE LOCAL:
-  # curl -v -X DELETE http://127.0.0.1:3000/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: XfDpsGajFXvrYzzZwCzE"
+  # curl -v -X DELETE http://127.0.0.1:3000/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
   #######################################################
   def remove_pet_ownership_for_logged_in_user
-    # TODO
+
+    pet_id = params[:pet_id]
+
+    begin
+      pet_ownership = PetOwnership.find_by(user_id: @authenticated_user_id, pet_id: pet_id)
+    rescue Mongoid::Errors::DocumentNotFound => e
+      logger.error "remove_pet_ownership_for_logged_in_user(): No ownership for pet #{pet_id} was found for user #{@authenticated_email}:#{@authenticated_user_id}, ownership deletion not possible."
+      render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
+      return
+    end
+
+    begin
+      device_for_pet_by_user = Device.find_by(user_id: @authenticated_user_id, pet_id: pet_id)
+      if(!device_for_pet_by_user.blank?)
+        logger.error "remove_pet_ownership_for_logged_in_user(): Device #{device_for_pet_by_user.serial} is registered for pet #{pet_id} by user #{@authenticated_email}:#{@authenticated_user_id}, aborting pet ownership deletion."
+        render :status => 409, :json => {:error => I18n.t("409response_device_registration_exists")}
+        return
+      end
+    rescue Mongoid::Errors::DocumentNotFound => e
+      logger.info "remove_pet_ownership_for_logged_in_user(): No device is registered for pet #{pet_id} by user #{@authenticated_email}:#{@authenticated_user_id}, ownership deletion will be attempted."
+    end
+
+    begin
+      pet_ownership.delete()
+    rescue => e
+      logger.error "remove_pet_ownership_for_logged_in_user(): Unexpected error when deleting pet ownership for pet #{pet_id} for user #{@authenticated_email}:#{@authenticated_user_id}, ownership deletion not possible, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    logger.error "remove_pet_ownership_for_logged_in_user(): Pet ownership removed for pet #{pet_id} for user #{@authenticated_email}:#{@authenticated_user_id}"
     head 204
   end
 
