@@ -217,6 +217,21 @@ class PetsController < AuthenticatedController
     render :status => 200, :json => {:pet_ids => owned_pet_ids}
   end
 
+  #######################################################
+  # Get all the pets owned by the currently logged in user
+  #
+  # 401:
+  #  - Authentication failed - user not logged in
+  # 500:
+  #  - An unexpected error occurred while fetching the resource
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: ej88B6PVzkJbs5hgnaih"
+  #######################################################
+  def get_owned_pets_for_logged_in_user
+    # TODO
+    head 204
+  end
 
   #######################################################
   # Get a pet for a given pet_id
