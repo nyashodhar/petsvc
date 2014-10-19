@@ -175,6 +175,10 @@ module PetBreedHelper
     end
   end
 
+  #
+  # TODO: This method should just be replaced by simple looking in I18n
+  #
+
   def breed_bundle_id_exists_in_resource_bundle?(creature_type, breed_bundle_id)
 
     if(creature_type.to_i == 0)
