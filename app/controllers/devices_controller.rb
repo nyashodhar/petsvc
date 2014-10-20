@@ -3,43 +3,62 @@ class DevicesController < AuthenticatedController
   include MongoIdHelper
 
   before_action :ensure_authenticated
-  before_action :ensure_internal_user, only: [:create]
+  before_action :ensure_internal_user, only: [:create_device_as_internal_user]
   before_action :resolve_pet_id_from_device_registration, only: [:deregister_device]
   before_action :ensure_owner_of_pet, only: [:register_device_for_logged_in_user, :deregister_device, :get_device_registration_for_pet]
 
   #######################################################
-  # TODO: Add an API spec here
+  # Create a device. The logged in user must be an internal user
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  # - Authorization failed - the user is not an internal user
+  #
+  # 409:
+  # - A device with the given device id already exists
+  #
+  # 422:
+  # - Device id is missing from request
+  #
+  # 500:
+  # - Unexpected error while storing creating the device
+  #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: KBbFPZGrFQvGPyduhzJG" -d '{"serial":"234234DTWERTSDH"}'
+  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"device_id":"234234DTWERTSDH"}'
   #######################################################
-  def create
+  def create_device_as_internal_user
 
-    device_args = request.params[:device]
+    device_id = params[:device_id]
+    if(device_id.blank?)
+      logger.error "create_device_as_internal_user(): No device_id provided, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      render :status => 422, :json => {:error => I18n.t("422response")}
+      return
+    end
 
-    existing_device = Device.where(serial: device_args[:serial]).exists?
+    existing_device = Device.where(serial: device_id).exists?
     if(existing_device)
-      logger.error "create(): Unable to create new device - a device with id #{device_args[:serial]} already exists, user #{@authenticated_email}:#{@authenticated_user_id}, args #{device_args}"
+      logger.error "create_device_as_internal_user(): Unable to create new device - a device with id #{device_id} already exists, user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 409, :json => {:error => I18n.t("409response")}
       return
     end
 
     begin
       device = Device.create(
-          serial: device_args[:serial]
+          serial: device_id
       )
       if(!device.valid?)
-        handle_mongoid_validation_error(device, device_args)
+        handle_mongoid_validation_error(device, request.params)
         return
       end
       device.save!
     rescue => e
-      logger.error "Unexpected error when creating device, args #{device_args}, error: #{e.inspect}"
+      logger.error "create_device_as_internal_user(): Unexpected error when creating device, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params #{request.params}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
-    # Success 201
-    render :status => 201, :json => {:serial => device.serial}
+    logger.info "create_device_as_internal_user(): Device #{device_id} created by user #{@authenticated_email}:#{@authenticated_user_id}"
+    render :status => 201, :json => {:device_id => device.serial}
   end
 
 
@@ -144,7 +163,7 @@ class DevicesController < AuthenticatedController
   # 401:
   # - Authentication failed - user is not logged in
   # - Authorization failed - No device found for device id
-  # - Authorization failed - The device is not registered, making pet-id authorization impossible
+  # - Authorization failed - The device is not registered, making pet ownership authorization impossible
   # - Authorization failed - No device found for device id, making pet ownership authorization impossible
   # - Authorization failed - user is not an owner of the pet to which the device is registered
   #
