@@ -5,7 +5,7 @@ class DevicesController < AuthenticatedController
   before_action :ensure_authenticated
   before_action :ensure_internal_user, only: [:create]
   before_action :resolve_pet_id_from_device_registration, only: [:deregister_device]
-  before_action :ensure_owner_of_pet, only: [:register_device, :deregister_device, :get_device_registration_for_pet]
+  before_action :ensure_owner_of_pet, only: [:register_device_for_logged_in_user, :deregister_device, :get_device_registration_for_pet]
 
   #######################################################
   # TODO: Add an API spec here
@@ -68,13 +68,13 @@ class DevicesController < AuthenticatedController
   # - An unexpected error occurred while creating the device registration
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/device/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"device_id":"234234DTWERTSDF","pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
+  # curl -v -X PUT http://127.0.0.1:3000/device/234234DTWERTSDF/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
   #######################################################
-  def register_device
+  def register_device_for_logged_in_user
 
-    device_id = request.params[:device_id]
+    device_id = params[:device_id]
     if(device_id.blank?)
-      logger.error "register_device(): No device_id provided, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device_for_logged_in_user(): No device_id provided, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 422, :json => {:error => I18n.t("422response")}
       return
     end
@@ -82,7 +82,7 @@ class DevicesController < AuthenticatedController
     begin
       device = Device.find_by(serial: device_id)
     rescue Mongoid::Errors::DocumentNotFound => e
-      logger.error "register_device(): No device found for device_id #{device_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device_for_logged_in_user(): No device found for device_id #{device_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
       return
     end
@@ -92,27 +92,27 @@ class DevicesController < AuthenticatedController
 
       # If the device happens to be registered for the exact same pet and user, avoid the 409
       if(device.pet_id.eql?(@owned_pet.pet_id) && (device.user_id.to_i == @authenticated_user_id.to_i))
-        logger.info "register_device(): Special case - This device (#{device.serial}) has already been registered for the pet and user in this request, no action required, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+        logger.info "register_device_for_logged_in_user(): Special case - This device (#{device.serial}) has already been registered for the pet and user in this request, no action required, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
         render :status => 201, :json => {:serial => device.serial, :pet_id => device.pet_id, :user_id => device.user_id}
         return
       end
 
       # This device has been registered and (user_id, pet_id) does not match combo in our request
-      logger.error "register_device(): This device (#{device.serial}) has already been registered for pet (#{device.pet_id}) for user #{device.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device_for_logged_in_user(): This device (#{device.serial}) has already been registered for pet (#{device.pet_id}) for user #{device.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 409, :json => {:error => I18n.t("409response")}
       return
     else
-      logger.info "register_device(): Good news - This device (#{device_id}) is not already registered to any pet"
+      logger.info "register_device_for_logged_in_user(): Good news - This device (#{device_id}) is not already registered to any pet"
     end
 
     # Has another device already been registered for this pet?
     begin
       device_already_registered_for_this_pet = Device.find_by(pet_id: @owned_pet.pet_id)
-      logger.error "register_device(): A device (#{device_already_registered_for_this_pet.serial}) is already registered for this pet (#{@owned_pet.pet_id}) for user #{device_already_registered_for_this_pet.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "register_device_for_logged_in_user(): A device (#{device_already_registered_for_this_pet.serial}) is already registered for this pet (#{@owned_pet.pet_id}) for user #{device_already_registered_for_this_pet.user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 409, :json => {:error => I18n.t("409response")}
       return
     rescue Mongoid::Errors::DocumentNotFound => e
-      logger.info "register_device(): Good news - No other device is already registered for pet #{@owned_pet.pet_id}"
+      logger.info "register_device_for_logged_in_user(): Good news - No other device is already registered for pet #{@owned_pet.pet_id}"
     end
 
     #
@@ -126,12 +126,12 @@ class DevicesController < AuthenticatedController
     begin
       device.save!
     rescue => e
-      logger.error "register_device(): Unexpected error when registering device #{device.serial} for pet #{@owned_pet.pet_id} and user #{@authenticated_user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}, error: #{e.inspect}"
+      logger.error "register_device_for_logged_in_user(): Unexpected error when registering device #{device.serial} for pet #{@owned_pet.pet_id} and user #{@authenticated_user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
-    logger.info "register_device(): Device #{device.serial} was registered for pet #{@owned_pet.pet_id} and user #{@authenticated_user_id}"
+    logger.info "register_device_for_logged_in_user(): Device #{device.serial} was registered for pet #{@owned_pet.pet_id} and user #{@authenticated_user_id}"
 
     render :status => 201, :json => {:serial => device.serial, :pet_id => device.pet_id, :user_id => device.user_id}
   end
@@ -157,7 +157,7 @@ class DevicesController < AuthenticatedController
   # - An unexpected error occurred when saving the device after deregistering it
   #
   # EXAMPLE LOCAL:
-  # curl -v -X DELETE http://127.0.0.1:3000/device/234234DTWERTSDF/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: ej88B6PVzkJbs5hgnaih"
+  # curl -v -X DELETE http://127.0.0.1:3000/device/234234DTWERTSDF/registration -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
   #######################################################
   def deregister_device
 

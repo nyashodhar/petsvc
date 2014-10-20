@@ -96,8 +96,8 @@ class PetsController < AuthenticatedController
   # Updates an existing pet object.
   #
   # 401:
-  #  - Authenticated failed (user not logged in)
-  #  - Authorization failed (the logged in user is not owner of the pet)
+  #  - Authenticated failed - user not logged in
+  #  - Authorization failed - the logged in user is not owner of the pet
   # 422:
   #  - One or more of the fields in the pet object were invalid
   # 500:
