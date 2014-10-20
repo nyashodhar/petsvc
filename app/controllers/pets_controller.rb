@@ -335,16 +335,24 @@ class PetsController < AuthenticatedController
     attempt_count = 0
 
     max_retries.times do
-
       attempt_count += 1
       invitation_id = def_generate_nine_char_hex_string()
-
       existing_invitation = PetInvitation.where(invitation_id: invitation_id).exists?
+
       if(existing_invitation)
+
+        # Failed attempt, if it's the final one we give up..
+
         logger.error "create_pet_ownership_invitation(): Attempt #{attempt_count} to generate unique invitation_id failed. An unexpired and unused invitation with id #{invitation_id} already exists, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
-        render :status => 409, :json => {:error => I18n.t("409response")}
-        return
+        if(attempt_count >= max_retries)
+          logger.error "create_pet_ownership_invitation(): #{max_retries} retries done, giving up generation of pet invitation for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params}"
+          render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+          return
+        end
+
       else
+
+        # Create the invitation
 
         logger.info "create_pet_ownership_invitation(): Attempt #{attempt_count}: #{invitation_id} is a unique invitation_id => invitation will be created, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
 
@@ -373,6 +381,7 @@ class PetsController < AuthenticatedController
         break
       end
     end
+
   end
 
   #######################################################
