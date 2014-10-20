@@ -4,7 +4,7 @@ class PetsController < AuthenticatedController
   include PetBreedHelper
 
   before_action :ensure_authenticated
-  before_action :ensure_owner_of_pet, only: [:update_pet]
+  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user]
 
   #######################################################
   # Creates a new pet object. When the pet object has
@@ -290,29 +290,22 @@ class PetsController < AuthenticatedController
   end
 
   #######################################################
-  # Get a pet for a given pet_id
+  # Get a pet for a given pet_id, the pet must be owned
+  # by the logged in user.
   #
   # 401:
-  #  - Authenticated failed (user not logged in)
-  # 404:
-  #  - No pet with the given pet id could be found
+  # - Authenticated failed - user not logged in
+  # - Authorization failed - user is not an owner of the pet identified by the pet id
+  #
   # 500:
-  #  - An unexpected error occurred while fetching the resource
+  # - An unexpected error occurred while fetching the pet
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet/9d855750-db24-4f15-805b-aaf0309980b9 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: dQPysiXrKhzdpxfKXfau"
+  # curl -v -X GET http://127.0.0.1:3000/pet/f65e0337-cf9a-4a82-a415-bf84a26f504c -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
   #######################################################
-  def get_pet
-    pet_id = params[:pet_id]
-    begin
-      pet = Pet.find_by(pet_id: pet_id)
-    rescue Mongoid::Errors::DocumentNotFound => e
-      logger.error "get_pet(): No pet found for pet_id #{pet_id} (logged in user #{@authenticated_email}:#{@authenticated_user_id})"
-      render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
-      return
-    end
-    logger.info "get_pet(): Found pet for pet id #{pet_id} for logged in user #{@authenticated_email}:#{@authenticated_user_id}"
-    render :status => 200, :json => {:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
+  def get_owned_pet_for_logged_in_user
+    logger.info "get_owned_pet_for_logged_in_user(): Found pet #{@owned_pet.pet_id} owned by user #{@authenticated_email}:#{@authenticated_user_id}"
+    render :status => 200, :json => {:pet_id => @owned_pet.pet_id, :name => @owned_pet.name, :creature_type => @owned_pet.creature_type, :breed_bundle_id => @owned_pet.breed_bundle_id, :weight_grams => @owned_pet.weight_grams}
   end
 
 end
