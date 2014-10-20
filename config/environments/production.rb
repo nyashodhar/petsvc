@@ -1,6 +1,9 @@
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
 
+  # TTL for pet ownership invitations (1 week)
+  config.pet_invitation_ttl_seconds = 7*24*60*60
+
   # Base URL for downstream auth service
   config.authsvc_base_url = "https://authsvc.petpal.mobi"
 

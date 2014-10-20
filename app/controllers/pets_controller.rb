@@ -41,11 +41,6 @@ class PetsController < AuthenticatedController
         weight_grams: pet_args[:weight_grams]
     )
 
-    #
-    # If the object fails mongoid validation, give a 422 error
-    # If anything else fails, give 500 error
-    #
-
     if(!pet.valid?)
       handle_mongoid_validation_error(pet, pet_args)
       return
@@ -327,26 +322,57 @@ class PetsController < AuthenticatedController
   # - An unexpected error happened while creating the pet ownership invitation
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/pet/invitation -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 3FQtuXCqSq-7t32yFTrh" -d '{"pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
+  # curl -v -X POST http://127.0.0.1:3000/pet/invitation -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 8GcjBocXyVgdE7pMYmdD" -d '{"pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
   #######################################################
   def create_pet_ownership_invitation
 
     #
     # We will try N times to generate an invitation id that is not already in
-    # use by a non-expired invitation
+    # use by a non-expired and unused/responded invitation
     #
 
     max_retries = 5
     attempt_count = 0
 
     max_retries.times do
+
       attempt_count += 1
       invitation_id = def_generate_nine_char_hex_string()
-      logger.info "**** invitation_id_with_hyphens(): invitation_id = #{invitation_id}, attempt_count = #{attempt_count}"
-    end
 
-    # TODO
-    head 204
+      existing_invitation = PetInvitation.where(invitation_id: invitation_id).exists?
+      if(existing_invitation)
+        logger.error "create_pet_ownership_invitation(): Attempt #{attempt_count} to generate unique invitation_id failed. An unexpired and unused invitation with id #{invitation_id} already exists, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+        render :status => 409, :json => {:error => I18n.t("409response")}
+        return
+      else
+
+        logger.info "create_pet_ownership_invitation(): Attempt #{attempt_count}: #{invitation_id} is a unique invitation_id => invitation will be created, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+
+        pet_invitation = PetInvitation.create(
+            invitation_id: invitation_id,
+            pet_id: @owned_pet.pet_id,
+            expiration_time: (Time.now + Rails.application.config.pet_invitation_ttl_seconds),
+            creator_user_id: @authenticated_user_id
+        )
+
+        if(!pet_invitation.valid?)
+          handle_mongoid_validation_error(pet_invitation, request.params)
+          return
+        end
+
+        begin
+          pet_invitation.save!
+        rescue => e
+          logger.error "create_pet_ownership_invitation(): Unexpected error when saving pet invitation_id #{invitation_id} for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params}"
+          render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+          return
+        end
+
+        logger.info "create_pet_ownership_invitation(): pet ownership invitation #{invitation_id} created for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+        render :status => 201, :json => {:invitation_id => pet_invitation.invitation_id, :pet_id => pet_invitation.pet_id, :expiration_time => pet_invitation.expiration_time}
+        break
+      end
+    end
   end
 
   #######################################################
