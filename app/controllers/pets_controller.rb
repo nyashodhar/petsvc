@@ -4,7 +4,7 @@ class PetsController < AuthenticatedController
   include PetBreedHelper
 
   before_action :ensure_authenticated
-  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user]
+  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user, :create_pet_ownership_invitation]
 
   #######################################################
   # Creates a new pet object. When the pet object has
@@ -319,11 +319,32 @@ class PetsController < AuthenticatedController
   # 412:
   # - The pet has too many owners (TODO)
   #
+  # 422:
+  # - Pet id is missing from the request
+  #
   # 500:
+  # - Unable to generate a unique invitation_id in N attempts
   # - An unexpected error happened while creating the pet ownership invitation
-  # curl -v -X POST http://127.0.0.1:3000/pet/invitation -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X POST http://127.0.0.1:3000/pet/invitation -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 3FQtuXCqSq-7t32yFTrh" -d '{"pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
   #######################################################
   def create_pet_ownership_invitation
+
+    #
+    # We will try N times to generate an invitation id that is not already in
+    # use by a non-expired invitation
+    #
+
+    max_retries = 5
+    attempt_count = 0
+
+    max_retries.times do
+      attempt_count += 1
+      invitation_id = def_generate_nine_char_hex_string()
+      logger.info "**** invitation_id_with_hyphens(): invitation_id = #{invitation_id}, attempt_count = #{attempt_count}"
+    end
+
     # TODO
     head 204
   end
@@ -353,6 +374,39 @@ class PetsController < AuthenticatedController
   def create_pet_ownership_from_invitation
     # TODO
     head 204
+  end
+
+
+  private
+
+  ########################################################
+  #
+  # Generate a random 9 character hex string with hyphens
+  #
+  # Examples:
+  #
+  #     8F2-79A-610
+  #     B7C-A15-576
+  #
+  ########################################################
+  def def_generate_nine_char_hex_string
+
+    invitation_id = SecureRandom.hex(5).to_s.upcase
+
+    #
+    # Note: A 5 byte random hex string will typically give a 10 char hex string.
+    # So we truncate the most significant char.
+    #
+
+    if(invitation_id.length > 9)
+      truncated_inviation_id = invitation_id[(invitation_id.length-9), 9]
+    else
+      truncated_inviation_id = invitation_id
+    end
+
+    invitation_id_with_hyphens = truncated_inviation_id.insert(3, '-').insert(7, '-')
+
+    return invitation_id_with_hyphens
   end
 
 end

@@ -74,7 +74,7 @@ module AuthorizationHelper
     pet_id = get_pet_id_for_authorization
 
     if(pet_id.blank?)
-      logger.error "ensure_owner_of_pet(): No pet_id path variable in the request => unable to determine pet ownership"
+      logger.error "ensure_owner_of_pet(): No pet_id available => unable to determine pet ownership"
       render :status => 422, :json => {:error => I18n.t("422response")}
       return
     end
