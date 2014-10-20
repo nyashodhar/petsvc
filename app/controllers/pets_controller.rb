@@ -22,7 +22,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while creating the pet object
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: WZJK3VUF3-SwrqasCxGD" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def create_pet
 
@@ -99,7 +99,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while updating the pet object
   #
   # EXAMPLE LOCAL:
-  # curl -v -X PUT http://127.0.0.1:3000/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: XfDpsGajFXvrYzzZwCzE" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  # curl -v -X PUT http://127.0.0.1:3000/pet/4f08d3c5-008d-4d52-a04c-9ab89b20345a -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: WZJK3VUF3-SwrqasCxGD" -d '{"name":"Fido","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def update_pet
 
@@ -172,7 +172,7 @@ class PetsController < AuthenticatedController
   #    ownership.
   #
   # EXAMPLE LOCAL:
-  # curl -v -X DELETE http://127.0.0.1:3000/pet/f65e0337-cf9a-4a82-a415-bf84a26f504c/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 5hsZqpGoo_Use_8y3iQo"
+  # curl -v -X DELETE http://127.0.0.1:3000/pet/4f08d3c5-008d-4d52-a04c-9ab89b20345a/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: WZJK3VUF3-SwrqasCxGD"
   #######################################################
   def remove_pet_ownership_for_logged_in_user
 
@@ -296,7 +296,7 @@ class PetsController < AuthenticatedController
   # - An unexpected error occurred while fetching the pet
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet/f65e0337-cf9a-4a82-a415-bf84a26f504c -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
+  # curl -v -X GET http://127.0.0.1:3000/pet/472c5b25-890d-41d2-b5e7-ac311e4bae2d -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
   #######################################################
   def get_owned_pet_for_logged_in_user
     logger.info "get_owned_pet_for_logged_in_user(): Found pet #{@owned_pet.pet_id} owned by user #{@authenticated_email}:#{@authenticated_user_id}"
@@ -337,7 +337,7 @@ class PetsController < AuthenticatedController
     max_retries.times do
       attempt_count += 1
       invitation_id = def_generate_nine_char_hex_string()
-      existing_invitation = PetInvitation.where(invitation_id: invitation_id).exists?
+      existing_invitation = PetInvitation.where(invitation_id: invitation_id, :expiration_time.gt => Time.now).exists?
 
       if(existing_invitation)
 
@@ -403,7 +403,7 @@ class PetsController < AuthenticatedController
   #
   # 500:
   # - An unexpected error happened while creating the pet ownership invitation
-  # curl -v -X POST http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 8GcjBocXyVgdE7pMYmdD" -d '{"invitation_id":"804-70A-6DC"}'
+  # curl -v -X POST http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 7Q2QoJvwCK2HNd9JnWaD" -d '{"invitation_id":"453-936-74C"}'
   #######################################################
   def create_pet_ownership_from_invitation
 

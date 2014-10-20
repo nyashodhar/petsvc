@@ -48,7 +48,6 @@ class Device
   # Serial number field
   #
   field :serial, type: String
-  index({ serial: 1 }, { unique: true, background: true })
   validates_presence_of :serial, message: I18n.t("field_is_required")
   validates :serial, length: {
       minimum: 8, too_short: I18n.t("input_is_too_short"),
@@ -65,6 +64,14 @@ class Device
   #
 
   #
+  # TODO: Add creation time (meta data)
+  #
+
+  #
+  # TODO: Add registration time (meta data)
+  #
+
+  #
   # REGISTRATION_USER_ID
   #
   field :user_id, type: Integer
@@ -72,17 +79,19 @@ class Device
   #
   # REGISTRATION_PET_ID
   #
-  # Note on sparse indexes in mongo:
-  #   http://stackoverflow.com/questions/8608567/sparse-indexes-and-null-values-in-mongo
-  #
-  # How to remove a field from a doc:
-  #   https://coderwall.com/p/wcx4pq
-  #
-
   field :pet_id, type: String
-  index({ pet_id: 1 }, { unique: true, background: true, sparse: true })
   validates :pet_id, length: {
       maximum: 256, too_long: I18n.t("input_is_too_long")
   }
+
+  #
+  # INDEXES
+  #
+  # Note on sparse indexes in mongo:
+  #   http://stackoverflow.com/questions/8608567/sparse-indexes-and-null-values-in-mongo
+  #
+  index({ serial: 1 }, { unique: true, background: true })
+  index({ pet_id: 1 }, { unique: true, background: true, sparse: true })
+  index({ user_id: 1 }, { unique: false, background: true, sparse: true })
 
 end

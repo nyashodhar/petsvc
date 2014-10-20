@@ -38,7 +38,10 @@ class PetOwnership
   validates_presence_of :pet_id, message: I18n.t("field_is_required")
 
   #
-  # (user_id, pet_id) should be a unique composite key
+  # INDEXES:
+  # Note: (user_id, pet_id) should be a unique composite key
   #
   index({ user_id: 1, pet_id: 1 }, { unique: true, background: true })
+  index({ user_id: 1 }, { unique: false, background: true })
+
 end

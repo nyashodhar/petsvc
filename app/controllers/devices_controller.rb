@@ -24,7 +24,7 @@ class DevicesController < AuthenticatedController
   # - Unexpected error while storing creating the device
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"device_id":"234234DTWERTSDH"}'
+  # curl -v -X POST http://127.0.0.1:3000/device -H "Accept: application/json" -H "Content-Type: application/json"  -H "X-User-Token: WZJK3VUF3-SwrqasCxGD" -d '{"device_id":"234234DTWERTSDH"}'
   #######################################################
   def create_device_as_internal_user
 
@@ -187,6 +187,7 @@ class DevicesController < AuthenticatedController
     # At this point we simply need to deregister the device.
     #
 
+    # How to remove a field from a doc: https://coderwall.com/p/wcx4pq
     @device_resolved_from_request.unset(:user_id)
     @device_resolved_from_request.unset(:pet_id)
 

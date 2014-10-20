@@ -88,7 +88,7 @@ module AuthorizationHelper
     end
 
     begin
-      pet = Pet.find_by(id: pet_id)
+      pet = Pet.find_by(pet_id: pet_id)
     rescue Mongoid::Errors::DocumentNotFound => e
 
       #

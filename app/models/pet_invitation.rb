@@ -51,6 +51,6 @@ class PetInvitation
   #
   # INDEXES
   #
-  index({ invitation_id: 1, expiration_time: 1, responder_user_id: 1}, { unique: false, background: true })
+  index({ invitation_id: 1, expiration_time: 1}, { unique: false, background: true })
 
 end
