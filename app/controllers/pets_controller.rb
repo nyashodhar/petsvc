@@ -308,4 +308,51 @@ class PetsController < AuthenticatedController
     render :status => 200, :json => {:pet_id => @owned_pet.pet_id, :name => @owned_pet.name, :creature_type => @owned_pet.creature_type, :breed_bundle_id => @owned_pet.breed_bundle_id, :weight_grams => @owned_pet.weight_grams}
   end
 
+  #######################################################
+  # Create an invitation that can be shared with another user to
+  # become an owner of a pet that is currently owned by the logged in user.
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  # - Authorization failed - the logged in user does not own the pet
+  #
+  # 412:
+  # - The pet has too many owners (TODO)
+  #
+  # 500:
+  # - An unexpected error happened while creating the pet ownership invitation
+  # curl -v -X POST http://127.0.0.1:3000/pet/invitation -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"pet_id":"f65e0337-cf9a-4a82-a415-bf84a26f504c"}'
+  #######################################################
+  def create_pet_ownership_invitation
+    # TODO
+    head 204
+  end
+
+  #######################################################
+  # Create an invitation that can be shared with another user to
+  # become an owner of a pet that is currently owned by the logged in user.
+  #
+  # 401:
+  # - Authentication failed - user is not logged in
+  #
+  # 404
+  # - No invitation matching the invitation id is found, or the invitation
+  # is already expired.
+  #
+  # 409:
+  # - The logged in user is already an owner of the pet referenced
+  #   in the invitation
+  #
+  # 422:
+  # - invitation_id is missing
+  #
+  # 500:
+  # - An unexpected error happened while creating the pet ownership invitation
+  # curl -v -X POST http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"invitation_id":"XYZ-23G-HH9"}'
+  #######################################################
+  def create_pet_ownership_from_invitation
+    # TODO
+    head 204
+  end
+
 end
