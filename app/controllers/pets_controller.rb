@@ -172,7 +172,7 @@ class PetsController < AuthenticatedController
   #    ownership.
   #
   # EXAMPLE LOCAL:
-  # curl -v -X DELETE http://127.0.0.1:3000/pet/0bf1afea-50b6-4bf6-a1c9-600796a39744/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
+  # curl -v -X DELETE http://127.0.0.1:3000/pet/f65e0337-cf9a-4a82-a415-bf84a26f504c/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 5hsZqpGoo_Use_8y3iQo"
   #######################################################
   def remove_pet_ownership_for_logged_in_user
 
@@ -385,15 +385,14 @@ class PetsController < AuthenticatedController
   end
 
   #######################################################
-  # Create an invitation that can be shared with another user to
-  # become an owner of a pet that is currently owned by the logged in user.
+  # Create a petownership based on an invitation.
   #
   # 401:
   # - Authentication failed - user is not logged in
   #
   # 404
   # - No invitation matching the invitation id is found, or the invitation
-  # is already expired.
+  # is already expired or responded to.
   #
   # 409:
   # - The logged in user is already an owner of the pet referenced
@@ -404,11 +403,71 @@ class PetsController < AuthenticatedController
   #
   # 500:
   # - An unexpected error happened while creating the pet ownership invitation
-  # curl -v -X POST http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry" -d '{"invitation_id":"XYZ-23G-HH9"}'
+  # curl -v -X POST http://127.0.0.1:3000/pet/ownership -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: 8GcjBocXyVgdE7pMYmdD" -d '{"invitation_id":"804-70A-6DC"}'
   #######################################################
   def create_pet_ownership_from_invitation
-    # TODO
-    head 204
+
+    invitation_id = params[:invitation_id]
+    if(invitation_id.blank?)
+      logger.error "create_pet_ownership_from_invitation(): No invitation_id available, can't create pet ownership, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      render :status => 422, :json => {:error => I18n.t("422response")}
+      return
+    end
+
+    begin
+      pet_invitation = PetInvitation.find_by(invitation_id: invitation_id, :expiration_time.gt => Time.now)
+    rescue Mongoid::Errors::DocumentNotFound => e
+      logger.error "create_pet_ownership_from_invitation(): No unexpired pet ownership invitation for invitation id #{invitation_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
+      return
+    end
+
+    if(!pet_invitation.responder_user_id.blank?)
+      logger.error "create_pet_ownership_from_invitation(): An unexpired pet ownership invitation was found for invitation id #{invitation_id} but it was already responded to by user #{pet_invitation.responder_user_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      render :status => 404, :json => {:error => I18n.t("404response_resource_not_found")}
+      return
+    end
+
+    existing_ownership = PetOwnership.where(user_id: @authenticated_user_id, pet_id: pet_invitation.pet_id).exists?
+    if(existing_ownership)
+      logger.error "create_pet_ownership_from_invitation(): The pet #{pet_invitation.pet_id} from the invitation #{pet_invitation.invitation_id} is already owned by the logged in user #{@authenticated_email}:#{@authenticated_user_id}."
+      render :status => 409, :json => {:error => I18n.t("409response_user_already_owner_of_pet")}
+      return
+    end
+
+    pet_ownership = PetOwnership.create(
+        user_id: @authenticated_user_id,
+        pet_id: pet_invitation.pet_id
+    )
+
+    if(!pet_ownership.valid?)
+      handle_mongoid_validation_error(pet_ownership)
+      return
+    end
+
+    begin
+      pet_ownership.save!
+    rescue => e
+      logger.error "create_pet_ownership_from_invitation(): Unexpected error when saving pet ownership for pet #{pet_invitation.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params #{request.params}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    logger.info "create_pet_ownership_from_invitation(): Pet ownership created for pet #{pet_ownership.pet_id} for user #{pet_ownership.user_id} from invitation #{pet_invitation.invitation_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+
+    # Finally, update the invitation and record the user id of the responding user
+    pet_invitation.responder_user_id = @authenticated_user_id
+
+    begin
+      pet_invitation.save!
+      logger.info "create_pet_ownership_from_invitation(): Responding user id #{@authenticated_user_id} stored in invitation #{invitation_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    rescue => e
+      logger.error "create_pet_ownership_from_invitation(): Unexpected error when saving the responding user id #{@authenticated_user_id} for invitation #{invitation_id}, the ownership was already created, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params #{request.params}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    render :status => 201, :json => {:user_id => pet_ownership.user_id, :pet_id => pet_ownership.pet_id}
   end
 
 
