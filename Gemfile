@@ -51,3 +51,9 @@ gem 'mongo'
 
 # Redis
 gem 'redis'
+
+# Carrierwave
+gem 'carrierwave'
+
+# Upload to S3 - used by carrierwave
+gem "fog"

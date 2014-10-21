@@ -2,9 +2,10 @@ class PetsController < AuthenticatedController
 
   include MongoIdHelper
   include PetBreedHelper
+  include S3Helper
 
   before_action :ensure_authenticated
-  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user, :create_pet_ownership_invitation]
+  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user, :create_pet_ownership_invitation, :upload_avatar_for_pet_owned_by_logged_in_user]
 
   #######################################################
   # Creates a new pet object. When the pet object has
@@ -140,6 +141,48 @@ class PetsController < AuthenticatedController
 
     logger.info "update_pet(): Pet #{@owned_pet.pet_id} updated by user #{@authenticated_email}:#{@authenticated_user_id}"
     head 204
+  end
+
+
+  ###############################################################
+  #
+  # Uploads a file to S3.
+  #
+  # Upon successful upload, the information about the uploaded file is stored in the pet
+  # object (TODO)
+  #
+  # 401:
+  # - Authentication failed - user not logged in
+  # - Authorization failed - user not owner of the pet for which image is being uploaded
+  #
+  # 500:
+  # - If binary content not present in the request
+  # - If error occurs while transferring the file to S3
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X POST -H "Content-Type: application/octet-stream" -H "X-User-Token: 2D_-zsUjGq1SrzCyCY6E" "http://127.0.0.1:3000/pet/9a7f1a9f-0f43-45bb-8602-46286c2c4ab0/avatar" --data-binary "@/Users/per/Desktop/test.png"
+  ###############################################################
+  def upload_avatar_for_pet_owned_by_logged_in_user
+
+    upload_dir = generate_file_dir("pet_avatar", @owned_pet.pet_id)
+    file_name = @owned_pet.pet_id
+
+    begin
+      s3_info = upload_file_to_s3(upload_dir, file_name)
+    rescue => e
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): Unable to upload avatar to S3 for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params.inspect}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    s3_url = get_s3_url_for_file(s3_info[:bucket_region], s3_info[:bucket_name], s3_info[:upload_dir], s3_info[:file_name])
+    logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar upload for pet #{@owned_pet.pet_id}, url: #{s3_url}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+
+    #
+    # TODO: Update the pet object!
+    #
+
+    render :status => 201, :json => {:remote_url => s3_url}
   end
 
 
