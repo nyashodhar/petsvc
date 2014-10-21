@@ -66,7 +66,7 @@ class PetsController < AuthenticatedController
     )
 
     if(!pet_ownership.valid?)
-      handle_mongoid_validation_error(pet_ownership)
+      handle_mongoid_validation_error(pet_ownership, pet_args)
       return
     end
 
@@ -437,7 +437,7 @@ class PetsController < AuthenticatedController
     )
 
     if(!pet_ownership.valid?)
-      handle_mongoid_validation_error(pet_ownership)
+      handle_mongoid_validation_error(pet_ownership, request.params)
       return
     end
 
