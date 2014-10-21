@@ -54,15 +54,11 @@ class PetsController < AuthenticatedController
       return
     end
 
+    logger.info "create_pet(): Pet #{pet.pet_id} created by user #{@authenticated_email}:#{@authenticated_user_id}"
+
     #
     # The pet object was created, create a pet ownership
     #
-
-    if(@authenticated_user_id.blank?)
-      logger.error "create_pet(): No authenticated user id present => unable to create pet ownership"
-      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
-      return
-    end
 
     pet_ownership = PetOwnership.create(
         user_id: @authenticated_user_id,
@@ -76,13 +72,13 @@ class PetsController < AuthenticatedController
 
     begin
       pet_ownership.save!
+      logger.info "create_pet(): Pet ownership created for #{pet.pet_id} for logged in user #{@authenticated_email}:#{@authenticated_user_id}"
     rescue => e
-      logger.error "create_pet(): Unexpected error when saving pet ownership for pet #{pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, pet_args #{pet_args}, error: #{e.inspect}"
+      logger.error "create_pet(): Pet created, but unexpected error when saving pet ownership for pet #{pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, pet_args #{pet_args}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
-    logger.info "create_pet(): Pet #{pet.pet_id} created by user #{@authenticated_email}:#{@authenticated_user_id}"
     render :status => 201, :json => {:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
   end
 
@@ -189,7 +185,7 @@ class PetsController < AuthenticatedController
     begin
       device_for_pet_by_user = Device.find_by(user_id: @authenticated_user_id, pet_id: pet_id)
       if(!device_for_pet_by_user.blank?)
-        logger.error "remove_pet_ownership_for_logged_in_user(): Device #{device_for_pet_by_user.serial} is registered for pet #{pet_id} by user #{@authenticated_email}:#{@authenticated_user_id}, aborting pet ownership deletion."
+        logger.error "remove_pet_ownership_for_logged_in_user(): Device #{device_for_pet_by_user.device_id} is registered for pet #{pet_id} by user #{@authenticated_email}:#{@authenticated_user_id}, aborting pet ownership deletion."
         render :status => 409, :json => {:error => I18n.t("409response_device_registration_exists")}
         return
       end

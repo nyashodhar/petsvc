@@ -137,7 +137,7 @@ module AuthorizationHelper
     end
 
     begin
-      device = Device.find_by(serial: device_id)
+      device = Device.find_by(device_id: device_id)
     rescue Mongoid::Errors::DocumentNotFound => e
       logger.error "resolve_pet_id_from_device_registration(): No device found for device_id #{device_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 401, :json => {:error => I18n.t("401response")}
