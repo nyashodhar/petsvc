@@ -14,13 +14,10 @@ RULES:
 - The pet API for the pet can be accessed by all owners of the pet
 - A pet can have only 1 device registered
 - To register another device for a pet, the old one has to be unregistered first
-- When an owner removes the pet from their mobile device, the pet will still linger for the other owners unless the
-  owner that removes the pet is the last owner. This allows the data about the pet to be available to users of the
-  service as long as anyone of the users is interested in tracking the pet.
-- When a pet is remove such that it no longer has any owners, the registered device should be updated as no longer
-  registered, allowing the device holder to register it to another pet at that point if the user wants.
-- The max number of owners for a pet is 10 users
-- The max number of pets that can be owned by a single user is 1000.
+- When an owner removes the pet from their mobile device, the pet will still linger for the other owners.
+- It's not allowed for a user to remove his/her ownership for a pet as long as the user has a device registered for the pet
+- The max number of owners for a pet is 10 users (TODO)
+- The max number of pets that can be owned by a single user is 1000 (TODO)
 
 =end
 
@@ -31,7 +28,6 @@ class Pet
   # ID
   field :pet_id, type: String, default: -> { SecureRandom.uuid }
   validates_presence_of :pet_id, message: I18n.t("field_is_required")
-  index({ pet_id: 1 }, { unique: true, background: true })
 
   field :_id, type: String, default: ->{ pet_id }
 
@@ -72,25 +68,21 @@ class Pet
       greater_than_or_equal_to: 0, less_than: 300000, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[0,299000]")
   }
 
-  # TODO: image_url
-
   #
-  # DEVICE SERIAL
-  # TODO: Figure out how to add a foreign key to the device object here, if that makes sense
-  # If that does not make sense, we should probably at least have a unique index for
-  # device serial in the pets to ensure that no two pets have the same device serial
-  #
-  field :device_serial, type: String, default: ->{ nil }
-  #
-  # validates :device_serial, length: {
-  #    minimum: 0, too_short: I18n.t("input_is_too_short"),
-  #    maximum: 256, too_long: I18n.t("input_is_too_long")
-  #}
-
-  #
-  # TODO: CREATOR USER ID (meta data only)
+  # TODO: image_url for uploaded pet picture
   #
 
-  # TODO: Still need to add more fields here
+  #
+  # TODO: CREATOR USER ID (meta data)
+  #
+
+  # TODO: We will need to add more fields here
+
+  #
+  # INDEXES
+  #
+  index({ pet_id: 1 }, { unique: true, background: true })
+
+
 
 end

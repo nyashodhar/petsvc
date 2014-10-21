@@ -74,7 +74,7 @@ module AuthorizationHelper
     pet_id = get_pet_id_for_authorization
 
     if(pet_id.blank?)
-      logger.error "ensure_owner_of_pet(): No pet_id path variable in the request => unable to determine pet ownership"
+      logger.error "ensure_owner_of_pet(): No pet_id available => unable to determine pet ownership"
       render :status => 422, :json => {:error => I18n.t("422response")}
       return
     end
@@ -88,7 +88,7 @@ module AuthorizationHelper
     end
 
     begin
-      pet = Pet.find_by(id: pet_id)
+      pet = Pet.find_by(pet_id: pet_id)
     rescue Mongoid::Errors::DocumentNotFound => e
 
       #
@@ -130,16 +130,16 @@ module AuthorizationHelper
     device_id = params[:device_id]
 
     if(device_id.blank?)
-      logger.error "resolve_pet_id_from_device_registration(): No device_id provided, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "resolve_pet_id_from_device_registration(): No device_id provided, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       errors_hash = {:device_id => [I18n.t("field_is_required")]}
       render :status => 422, :json => {:error => errors_hash}
       return
     end
 
     begin
-      device = Device.find_by(serial: device_id)
+      device = Device.find_by(device_id: device_id)
     rescue Mongoid::Errors::DocumentNotFound => e
-      logger.error "resolve_pet_id_from_device_registration(): No device found for device_id #{device_id}, logged in user (#{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
+      logger.error "resolve_pet_id_from_device_registration(): No device found for device_id #{device_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params: #{request.params}"
       render :status => 401, :json => {:error => I18n.t("401response")}
       return
     end

@@ -146,11 +146,44 @@ module PetBreedHelper
   end
 
 
+  def creature_type_valid?(creature_type)
+    if(creature_type != nil && creature_type.to_i != 0 && creature_type.to_i != 1)
+      logger.error "creature_type_valid?(): Invalid value creature type value #{creature_type}"
+      return false
+    end
+    return true
+  end
+
+  def get_all_breed_names(creature_type)
+
+    if(!creature_type_valid?(creature_type))
+      raise "get_all_breed_bundle_ids(): Invalid creature type #{creature_type}"
+    end
+
+    if(creature_type.to_i == 0)
+      return lookup_all_breed_bundle_ids($dog_breeds)
+    end
+    if(creature_type.to_i == 1)
+      return lookup_all_breed_bundle_ids($cat_breeds)
+    end
+  end
+
   private
+
+  def lookup_all_breed_bundle_ids(bundle_id_set)
+    localized_breed_names = ActiveSupport::OrderedHash.new
+    bundle_id_set.each { | breed_bundle_id |
+      localized_breed_name = I18n.t(breed_bundle_id, :default => "")
+      if(!localized_breed_name.blank?)
+        localized_breed_names[breed_bundle_id] = localized_breed_name
+      end
+    }
+    return localized_breed_names
+  end
 
   def breed_bundle_id_compatible_with_creature_type?(breed_bundle_id, creature_type)
 
-    if(creature_type.to_i != 0 && creature_type.to_i != 1)
+    if(!creature_type_valid?(creature_type))
       logger.error "breed_bundle_id_compatible_with_creature_type?(): Invalid value creature type value #{creature_type}"
       return false
     end
@@ -164,6 +197,7 @@ module PetBreedHelper
     return false
   end
 
+
   def get_breed_bundle_prefix_for_creature_type(creature_type)
 
     if(creature_type.to_i == 0)
@@ -174,6 +208,10 @@ module PetBreedHelper
       return "cat"
     end
   end
+
+  #
+  # TODO: This method should just be replaced by simple lookup in I18n
+  #
 
   def breed_bundle_id_exists_in_resource_bundle?(creature_type, breed_bundle_id)
 

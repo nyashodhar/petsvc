@@ -25,6 +25,8 @@ en:
   404response_resource_not_found: "Resource not found"
   422response: "Unprocessable Entity"
   409response: "Conflict"
+  409response_device_registration_exists: "Device registration exists"
+  409response_user_already_owner_of_pet: "User already owner of pet"
   500response_internal_server_error: "Internal Server Error"
 
   input_is_too_long: "Input is too long"
