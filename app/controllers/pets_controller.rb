@@ -81,7 +81,15 @@ class PetsController < AuthenticatedController
       return
     end
 
-    render :status => 201, :json => {:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
+    begin
+      pet_response_fields = get_pet_response_fields_for_pet(pet)
+    rescue => e
+      logger.error "create_pet(): Pet #{pet.pet_id} created, but unexpected error when generating response fields, user #{@authenticated_email}:#{@authenticated_user_id}, pet_args #{pet_args}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    render :status => 201, :json => { :pet => pet_response_fields }
   end
 
 
@@ -244,7 +252,7 @@ class PetsController < AuthenticatedController
       return
     end
 
-    render :status => 201, :json => {:remote_url => s3_url}
+    render :status => 201, :json => {:avatar_s3_url => s3_url}
   end
 
 
@@ -352,7 +360,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while fetching the owned pets
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
+  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4"
   #######################################################
   def get_owned_pets_for_logged_in_user
 
@@ -373,7 +381,15 @@ class PetsController < AuthenticatedController
     owned_pet_ids.each do | pet_id |
       begin
         pet = Pet.find_by(pet_id: pet_id)
-        owned_pets.push({:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams})
+
+        begin
+          pet_response_fields = get_pet_response_fields_for_pet(pet)
+        rescue => e
+          logger.error "get_owned_pets_for_logged_in_user(): Unexpected error when generating response fields for pet #{pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+          render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+          return
+        end
+        owned_pets.push(pet_response_fields)
       rescue Mongoid::Errors::DocumentNotFound => e
         logger.error "get_owned_pets_for_logged_in_user(): An ownership for pet #{pet_id} was found for user #{@authenticated_email}:#{@authenticated_user_id}, but the pet does not exist!"
         render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
@@ -397,11 +413,20 @@ class PetsController < AuthenticatedController
   # - An unexpected error occurred while fetching the pet
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet/472c5b25-890d-41d2-b5e7-ac311e4bae2d -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
+  # curl -v -X GET http://127.0.0.1:3000/pet/66c27fb2-1a1e-4a51-ae8f-df604e638386 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4"
   #######################################################
   def get_owned_pet_for_logged_in_user
+
+    begin
+      pet_response_fields = get_pet_response_fields_for_pet(@owned_pet)
+    rescue => e
+      logger.error "get_owned_pet_for_logged_in_user(): Unexpected error when generating response fields for pet #{@owned_pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
     logger.info "get_owned_pet_for_logged_in_user(): Found pet #{@owned_pet.pet_id} owned by user #{@authenticated_email}:#{@authenticated_user_id}"
-    render :status => 200, :json => {:pet_id => @owned_pet.pet_id, :name => @owned_pet.name, :creature_type => @owned_pet.creature_type, :breed_bundle_id => @owned_pet.breed_bundle_id, :weight_grams => @owned_pet.weight_grams}
+    render :status => 201, :json => { :pet => pet_response_fields }
   end
 
   #######################################################
@@ -602,6 +627,39 @@ class PetsController < AuthenticatedController
     invitation_id_with_hyphens = truncated_inviation_id.insert(3, '-').insert(7, '-')
 
     return invitation_id_with_hyphens
+  end
+
+
+
+  private
+
+  ########################################################
+  #
+  # Produce a hash of all the fields to include for a pet
+  # in a response
+  #
+  # If an avatar has been uploaded for the pet, go to the
+  # s3 uploads table to get the image url.
+  #
+  ########################################################
+  def get_pet_response_fields_for_pet(pet)
+    pet_response_fields = Hash.new
+    pet_response_fields[:pet_id] = pet.pet_id
+    pet_response_fields[:name] = pet.name
+    pet_response_fields[:creature_type] = pet.creature_type
+    pet_response_fields[:breed_bundle_id] = pet.breed_bundle_id
+    if(!pet.weight_grams.blank?)
+      pet_response_fields[:weight_grams] = pet.weight_grams
+    end
+    if(!pet.avatar_upload_id.blank?)
+      begin
+        s3_upload = S3Upload.find_by(_id: pet.avatar_upload_id)
+        pet_response_fields[:avatar_s3_url] = s3_upload.url
+      rescue Mongoid::Errors::DocumentNotFound => e
+        raise "get_pet_response_fields_for_pet(): The pet #{pet.pet_id} has an avatar_upload_id #{pet.avatar_upload_id} but no s3 upload was found, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      end
+    end
+    return pet_response_fields
   end
 
 end
