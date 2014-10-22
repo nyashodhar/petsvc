@@ -23,7 +23,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while creating the pet object
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: WZJK3VUF3-SwrqasCxGD" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def create_pet
 
@@ -39,7 +39,8 @@ class PetsController < AuthenticatedController
         birth_year: pet_args[:birth_year],
         creature_type: pet_args[:creature_type],
         breed_bundle_id: pet_args[:breed_bundle_id],
-        weight_grams: pet_args[:weight_grams]
+        weight_grams: pet_args[:weight_grams],
+        creator_user_id: @authenticated_user_id
     )
 
     if(!pet.valid?)
@@ -160,11 +161,24 @@ class PetsController < AuthenticatedController
   # - If error occurs while transferring the file to S3
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST -H "Content-Type: application/octet-stream" -H "X-User-Token: 2D_-zsUjGq1SrzCyCY6E" "http://127.0.0.1:3000/pet/9a7f1a9f-0f43-45bb-8602-46286c2c4ab0/avatar" --data-binary "@/Users/per/Desktop/test.png"
+  # curl -v -X POST -H "Content-Type: application/octet-stream" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4" "http://127.0.0.1:3000/pet/66c27fb2-1a1e-4a51-ae8f-df604e638386/avatar" --data-binary "@/Users/per/Desktop/test.png"
   ###############################################################
   def upload_avatar_for_pet_owned_by_logged_in_user
 
-    upload_dir = generate_file_dir("pet_avatar", @owned_pet.pet_id)
+    #
+    # Note: Scheme for storing files on S3:
+    #
+    #    BUCKET/HEAP/SUBHEAP/FILENAME
+    #
+    # For now we use the same file name every time an avatar is uploaded. This means
+    # that in s3 the previously uploaded avatar file will be overwritten the next
+    # a new avatar is uploaded for the same pet.
+    #
+
+    s3_heap = "pet_avatar"
+    s3_subheap = @owned_pet.pet_id
+
+    upload_dir = generate_file_dir(s3_heap, s3_subheap)
     file_name = @owned_pet.pet_id
 
     begin
@@ -179,8 +193,56 @@ class PetsController < AuthenticatedController
     logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar upload for pet #{@owned_pet.pet_id}, url: #{s3_url}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
 
     #
-    # TODO: Update the pet object!
+    # Create an s3 upload
     #
+
+    s3_upload_id = SecureRandom.uuid.to_s
+
+    s3_upload = S3Upload.create(
+        _id: s3_upload_id,
+        creation_time: Time.now,
+        uploader_user_id: @authenticated_user_id,
+        bucket_name: s3_info[:bucket_name],
+        bucket_region: s3_info[:bucket_region],
+        heap: s3_heap,
+        subheap: s3_subheap,
+        file_name: file_name,
+        url: s3_url
+    )
+
+    if(!s3_upload.valid?)
+      handle_mongoid_validation_error(s3_upload, request.params)
+      return
+    end
+
+    begin
+      s3_upload.save!
+      logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload created for pet #{@owned_pet.pet_id} for logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    rescue => e
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): File uploaded to S3 for pet #{@owned_pet.pet_id}, but unexpected error when saving s3 upload #{s3_upload_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    #
+    # Store the s3 upload id in the pet object
+    #
+
+    @owned_pet.avatar_upload_id = s3_upload_id
+
+    if(!@owned_pet.valid?)
+      handle_mongoid_validation_error(@owned_pet, request.params)
+      return
+    end
+
+    begin
+      @owned_pet.save!
+      logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload id #{s3_upload_id} saved in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    rescue => e
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload #{s3_upload_id} saved, but unexpected error when saving s3 upload id in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
 
     render :status => 201, :json => {:remote_url => s3_url}
   end

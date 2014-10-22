@@ -25,13 +25,17 @@ class Pet
 
   include Mongoid::Document
 
+  #
   # ID
+  #
   field :pet_id, type: String, default: -> { SecureRandom.uuid }
   validates_presence_of :pet_id, message: I18n.t("field_is_required")
 
   field :_id, type: String, default: ->{ pet_id }
 
+  #
   # NAME
+  #
   field :name, type: String
   validates_presence_of :name, message: I18n.t("field_is_required")
   validates :name, length: {
@@ -39,21 +43,27 @@ class Pet
       maximum: 256, too_long: I18n.t("input_is_too_long")
   }
 
+  #
   # BIRTH YEAR
+  #
   field :birth_year, type: Integer
   validates_presence_of :birth_year, message: I18n.t("field_is_required")
   validates :birth_year, numericality: {
     greater_than_or_equal_to: 1970, less_than: 10000, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[1970,9999]")
   }
 
+  #
   # CREATURE TYPE
+  #
   field :creature_type, type: Integer
   validates_presence_of :creature_type, message: I18n.t("field_is_required")
   validates :creature_type, numericality: {
       greater_than_or_equal_to: 0, less_than: 2, only_integer: true, message: I18n.t("number_must_be_in_range", :range => "[0,1]")
   }
 
+  #
   # BREED_RESOURCE_BUNDLE_KEY
+  #
   field :breed_bundle_id, type: String
   validates_presence_of :breed_bundle_id, message: I18n.t("field_is_required")
   validates :breed_bundle_id, length: {
@@ -61,7 +71,9 @@ class Pet
       maximum: 9, too_long: I18n.t("input_is_too_long")
   }
 
+  #
   # WEIGHT
+  #
   field :weight_grams, type: Integer
   validates_presence_of :weight_grams, message: I18n.t("field_is_required")
   validates :weight_grams, numericality: {
@@ -69,20 +81,22 @@ class Pet
   }
 
   #
-  # TODO: image_url for uploaded pet picture
+  # AVATAR UPLOAD ID
   #
+  field :avatar_upload_id, type: String
+  validates :avatar_upload_id, length: {
+      maximum: 256, too_long: I18n.t("input_is_too_long")
+  }
 
   #
-  # TODO: CREATOR USER ID (meta data)
+  # CREATOR USER ID (meta data)
   #
-
-  # TODO: We will need to add more fields here
+  field :creator_user_id, type: Integer
+  validates_presence_of :creator_user_id, message: I18n.t("field_is_required")
 
   #
   # INDEXES
   #
   index({ pet_id: 1 }, { unique: true, background: true })
-
-
 
 end

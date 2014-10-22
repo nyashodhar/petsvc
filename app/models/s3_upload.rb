@@ -13,8 +13,8 @@ class S3Upload
   #
   # CREATION TIME (meta data)
   #
-  field :expiration_time, type: Time
-  validates_presence_of :expiration_time, message: I18n.t("field_is_required")
+  field :creation_time, type: Time
+  validates_presence_of :creation_time, message: I18n.t("field_is_required")
 
   #
   # UPLOADER USER ID (meta data)

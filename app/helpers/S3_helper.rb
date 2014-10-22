@@ -2,12 +2,12 @@ module S3Helper
 
   #############################################################
   #
-  # Generate a director name for S3. This is the dir relative
+  # Generate a directory name for S3. This is the dir relative
   # to the bucket name in which the file will reside.
   #
   #############################################################
-  def generate_file_dir(heap_name, identifier)
-    return "#{heap_name}/#{identifier}"
+  def generate_file_dir(heap_name, subheap_name)
+    return "#{heap_name}/#{subheap_name}"
   end
 
   #############################################################
