@@ -35,7 +35,7 @@
 #   - Combining this with UUID-based filenames should be secure enough for all petpal users
 #   - To make fog_public work in AWS the following steps are needed in AWS
 #      1) Select the user to which the AWS access key belongs in the AWS IAM console
-#      2) Select 'Attack User Policy'
+#      2) Select 'Attach User Policy'
 #      3) In the list of policy templates, select 'Amazon S3 Full Access'
 #      4) In the S3 bucket itself, go to properties, then permissions and add grantee 'Authenticated Users' and check all checkboxes.
 #
@@ -45,8 +45,28 @@
 ##########################################################################
 class S3Uploader < CarrierWave::Uploader::Base
 
+  # This is required for resizing
+  include CarrierWave::MiniMagick
+
   ############################################
-  # Note: HOWTO introduce multiple S# buckets.
+  # This uploader will upload an image to S3.
+  #
+  # Note: Image scaling and thumb versions
+  # ==============================================
+  #
+  # If instructed to do so, the uploader will upload a 2nd
+  # thumbnail version of the image. In addition to the full
+  # size image.
+  #
+  # Both the thumbnail and the full size image is scaled to fit
+  # within certain bounds. The image is never scaled up to fit
+  # those bounds, only downscaling will be performed.
+  #
+  # The aspect ratio of the image will not be altered by any
+  # of the scaling operations.
+  #
+  # Note: HOWTO introduce multiple S3 buckets.
+  # ==============================================
   #
   # Specify our S3 bucket config here rather than use an initializer
   #
@@ -64,8 +84,14 @@ class S3Uploader < CarrierWave::Uploader::Base
 
     super
 
+    @logger = Rails.application.config.logger
+
     @uploads_dir = uploads_dir
     @file_name = file_name
+    @create_thumb = true
+
+    @thumb_max_width = Rails.application.config.s3_thumb_image_max_width
+    @thumb_max_height = Rails.application.config.s3_thumb_image_max_height
 
     self.fog_credentials = {
         :provider               => 'AWS',
@@ -81,6 +107,7 @@ class S3Uploader < CarrierWave::Uploader::Base
   storage :fog
 
   include CarrierWave::MimeTypes
+
   process :set_content_type
 
   def get_bucket_region
@@ -96,8 +123,56 @@ class S3Uploader < CarrierWave::Uploader::Base
   end
 
   #
-  # TODO: Perform resizing!
+  # Ensure the full-size version of the image is not beyond a certain box
   #
+
+  process :store_dimensions
+  process :convert => 'jpg'
+  process :resize_to_limit_with_quality => [Rails.application.config.s3_full_image_max_width, Rails.application.config.s3_full_image_max_height, 80]
+
+  #
+  # Make a thumb version of the image
+  #
+
+  version :thumb, :if => :make_thumbnail? do
+    if(@image_width.blank? && @image_width.blank?)
+      process :store_dimensions
+    end
+    process :convert => 'jpg'
+    process :resize_to_limit_with_quality => [Rails.application.config.s3_thumb_image_max_width, Rails.application.config.s3_thumb_image_max_height, 80]
+  end
+
+  private
+
+  def make_thumbnail?(img)
+
+    #
+    # Note: this callback ends up being called multiple times by carrier wave.
+    # Use a boolean flag to avoid multiple entries for the same info in the log
+    #
+
+    if(@make_thumnail_already_called)
+      return @create_thumb
+    end
+
+    @logger.debug "make_thumbnail?(): img = #{img.inspect}"
+    if(@create_thumb)
+      @logger.info "make_thumbnail?(): A thumb version will be created to fit the box [#{@thumb_max_width}, #{@thumb_max_height}], the uploaded image has #{@image_width} pixels width and #{@image_height} height."
+      @make_thumnail_already_called = true
+      return true
+    else
+      @logger.info "make_thumbnail?(): No thumb version of the image will be created, the uploaded image has #{@image_width} pixels width and #{@image_height} height."
+      @make_thumnail_already_called = true
+      return false
+    end
+  end
+
+  def store_dimensions
+    if file && model
+      @image_width, @image_height = ::MiniMagick::Image.open(file.file)[:dimensions]
+      @logger.debug "store_dimensions(): @image_width = #{@image_width}, @image_height = #{@image_height}\n"
+    end
+  end
 
   #def cache_dir
   #  "/tmp/uploads"

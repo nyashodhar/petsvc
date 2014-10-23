@@ -55,5 +55,8 @@ gem 'redis'
 # Carrierwave
 gem 'carrierwave'
 
+# Support for scaling of pictures with carrierwave
+gem 'mini_magick'
+
 # Upload to S3 - used by carrierwave
 gem "fog"

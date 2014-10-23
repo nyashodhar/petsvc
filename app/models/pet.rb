@@ -81,10 +81,18 @@ class Pet
   }
 
   #
-  # AVATAR UPLOAD ID
+  # AVATAR UPLOAD ID (full size image)
   #
   field :avatar_upload_id, type: String
   validates :avatar_upload_id, length: {
+      maximum: 256, too_long: I18n.t("input_is_too_long")
+  }
+
+  #
+  # AVATAR UPLOAD ID THUMB (full size image)
+  #
+  field :avatar_upload_id_thumb, type: String
+  validates :avatar_upload_id_thumb, length: {
       maximum: 256, too_long: I18n.t("input_is_too_long")
   }
 

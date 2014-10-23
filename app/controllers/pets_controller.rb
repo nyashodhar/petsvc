@@ -192,13 +192,14 @@ class PetsController < AuthenticatedController
     begin
       s3_info = upload_file_to_s3(upload_dir, file_name)
     rescue => e
-      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): Unable to upload avatar to S3 for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params.inspect}, error: #{e.inspect}"
+      trace = e.backtrace[0,10].join("\n")
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): Unable to upload avatar to S3 for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params.inspect}, error: #{e.inspect}, trace #{trace}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
     s3_url = get_s3_url_for_file(s3_info[:bucket_region], s3_info[:bucket_name], s3_info[:upload_dir], s3_info[:file_name])
-    logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar upload for pet #{@owned_pet.pet_id}, url: #{s3_url}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar uploaded for pet #{@owned_pet.pet_id}, url: #{s3_url}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
 
     #
     # Create an s3 upload
