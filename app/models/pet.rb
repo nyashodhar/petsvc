@@ -81,7 +81,7 @@ class Pet
   }
 
   #
-  # AVATAR UPLOAD ID (full size image)
+  # AVATAR UPLOAD ID (full sized version of the avatar image)
   #
   field :avatar_upload_id, type: String
   validates :avatar_upload_id, length: {
@@ -89,7 +89,7 @@ class Pet
   }
 
   #
-  # AVATAR UPLOAD ID THUMB (full size image)
+  # AVATAR UPLOAD ID THUMB (smaller sized version of the avatar image)
   #
   field :avatar_upload_id_thumb, type: String
   validates :avatar_upload_id_thumb, length: {

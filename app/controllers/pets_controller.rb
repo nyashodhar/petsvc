@@ -185,12 +185,13 @@ class PetsController < AuthenticatedController
 
     s3_heap = "pet_avatar"
     s3_subheap = @owned_pet.pet_id
-
     upload_dir = generate_file_dir(s3_heap, s3_subheap)
     file_name = @owned_pet.pet_id
 
+    create_thumb = true
+
     begin
-      s3_info = upload_file_to_s3(upload_dir, file_name)
+      s3_info = upload_file_to_s3(upload_dir, s3_heap, s3_subheap, file_name, create_thumb)
     rescue => e
       trace = e.backtrace[0,10].join("\n")
       logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): Unable to upload avatar to S3 for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params.inspect}, error: #{e.inspect}, trace #{trace}"
@@ -198,46 +199,28 @@ class PetsController < AuthenticatedController
       return
     end
 
-    s3_url = get_s3_url_for_file(s3_info[:bucket_region], s3_info[:bucket_name], s3_info[:upload_dir], s3_info[:file_name])
-    logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar uploaded for pet #{@owned_pet.pet_id}, url: #{s3_url}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar uploaded for pet #{@owned_pet.pet_id}, s3_info: #{s3_info}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
 
     #
-    # Create an s3 upload
+    # Store the s3 upload id(s) in the pet object
     #
 
-    s3_upload_id = SecureRandom.uuid.to_s
+    s3_upload_ids = Array.new
+    s3_urls = Hash.new
 
-    s3_upload = S3Upload.create(
-        _id: s3_upload_id,
-        creation_time: Time.now,
-        uploader_user_id: @authenticated_user_id,
-        bucket_name: s3_info[:bucket_name],
-        bucket_region: s3_info[:bucket_region],
-        heap: s3_heap,
-        subheap: s3_subheap,
-        file_name: file_name,
-        url: s3_url
-    )
+    s3_upload_ids.push(s3_info[:upload_id])
+    s3_urls[:avatar_s3_url] = s3_info[:url]
+    @owned_pet.avatar_upload_id = s3_info[:upload_id]
 
-    if(!s3_upload.valid?)
-      handle_mongoid_validation_error(s3_upload, request.params)
-      return
+    if(create_thumb)
+      s3_upload_ids.push(s3_info[:upload_id_thumb])
+      s3_urls[:avatar_s3_url_thumb] = s3_info[:url_thumb]
+      @owned_pet.avatar_upload_id_thumb = s3_info[:upload_id_thumb]
+    else
+      # If we didn't actually create a thumb, we need to make sure the reference to any previously
+      # uploaded one is wiped (since that thumbnail file might be lingering on S3..:-)
+      @owned_pet.unset(:avatar_upload_id_thumb)
     end
-
-    begin
-      s3_upload.save!
-      logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload created for pet #{@owned_pet.pet_id} for logged in user #{@authenticated_email}:#{@authenticated_user_id}"
-    rescue => e
-      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): File uploaded to S3 for pet #{@owned_pet.pet_id}, but unexpected error when saving s3 upload #{s3_upload_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
-      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
-      return
-    end
-
-    #
-    # Store the s3 upload id in the pet object
-    #
-
-    @owned_pet.avatar_upload_id = s3_upload_id
 
     if(!@owned_pet.valid?)
       handle_mongoid_validation_error(@owned_pet, request.params)
@@ -246,14 +229,14 @@ class PetsController < AuthenticatedController
 
     begin
       @owned_pet.save!
-      logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload id #{s3_upload_id} saved in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload ids #{s3_upload_ids} saved in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
     rescue => e
-      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload #{s3_upload_id} saved, but unexpected error when saving s3 upload id in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): S3 uploads #{s3_upload_ids} saved, but unexpected error when saving s3 upload id(s) in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
       render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
       return
     end
 
-    render :status => 201, :json => {:avatar_s3_url => s3_url}
+    render :status => 201, :json => {:avatar_urls => s3_urls}
   end
 
 
@@ -414,7 +397,7 @@ class PetsController < AuthenticatedController
   # - An unexpected error occurred while fetching the pet
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet/66c27fb2-1a1e-4a51-ae8f-df604e638386 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4"
+  # curl -v -X GET http://127.0.0.1:3000/pet/66c27fb2-1a1e-4a51-ae8f-df604e638386 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: D1g69DsLohzSsB326gWx"
   #######################################################
   def get_owned_pet_for_logged_in_user
 
@@ -630,8 +613,6 @@ class PetsController < AuthenticatedController
     return invitation_id_with_hyphens
   end
 
-
-
   private
 
   ########################################################
@@ -658,6 +639,14 @@ class PetsController < AuthenticatedController
         pet_response_fields[:avatar_s3_url] = s3_upload.url
       rescue Mongoid::Errors::DocumentNotFound => e
         raise "get_pet_response_fields_for_pet(): The pet #{pet.pet_id} has an avatar_upload_id #{pet.avatar_upload_id} but no s3 upload was found, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      end
+    end
+    if(!pet.avatar_upload_id_thumb.blank?)
+      begin
+        s3_upload_thumb = S3Upload.find_by(_id: pet.avatar_upload_id_thumb)
+        pet_response_fields[:avatar_s3_url_thumb] = s3_upload_thumb.url
+      rescue Mongoid::Errors::DocumentNotFound => e
+        raise "get_pet_response_fields_for_pet(): The pet #{pet.pet_id} has an avatar_upload_id_thumb #{pet.avatar_upload_id_thumb} but no s3 upload was found, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
       end
     end
     return pet_response_fields

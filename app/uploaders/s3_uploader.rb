@@ -88,7 +88,7 @@ class S3Uploader < CarrierWave::Uploader::Base
 
     @uploads_dir = uploads_dir
     @file_name = file_name
-    @create_thumb = true
+    #@create_thumb = create_thumb
 
     @thumb_max_width = Rails.application.config.s3_thumb_image_max_width
     @thumb_max_height = Rails.application.config.s3_thumb_image_max_height
@@ -120,6 +120,10 @@ class S3Uploader < CarrierWave::Uploader::Base
 
   def filename
     @file_name
+  end
+
+  def set_create_thumb(create_thumb)
+    @create_thumb = create_thumb
   end
 
   #
