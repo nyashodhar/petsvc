@@ -6,6 +6,7 @@ class PetsController < AuthenticatedController
 
   before_action :ensure_authenticated
   before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user, :create_pet_ownership_invitation, :upload_avatar_for_pet_owned_by_logged_in_user]
+  before_action :ensure_request_not_too_large, only: [:upload_avatar_for_pet_owned_by_logged_in_user]
 
   #######################################################
   # Creates a new pet object. When the pet object has

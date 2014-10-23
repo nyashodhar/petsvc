@@ -2,6 +2,26 @@ module S3Helper
 
   #############################################################
   #
+  # Ensure incoming request does not have too much data
+  #
+  # Give a 400 response if the incoming request has more data than
+  # allowed in the setting:
+  #
+  #     Rails.application.config.s3_incoming_request_max_bytes
+  #
+  #############################################################
+  def ensure_request_not_too_large
+    request_size = request.content_length()
+    max_request_size = Rails.application.config.s3_incoming_request_max_bytes
+    if(request_size > max_request_size)
+      logger.error "ensure_request_not_too_large(): The body of the incoming request is too large (#{request_size} byte), the max request size allowed is #{max_request_size}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      render :status => 422, :json => {:error => I18n.t("422response_request_body_too_large")}
+      return
+    end
+  end
+
+  #############################################################
+  #
   # Generate a directory name for S3. This is the dir relative
   # to the bucket name in which the file will reside.
   #
