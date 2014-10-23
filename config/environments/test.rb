@@ -11,6 +11,7 @@ Rails.application.configure do
   config.s3_full_image_max_height = 1280
   config.s3_thumb_image_max_width = 300
   config.s3_thumb_image_max_height = 300
+  config.s3_incoming_request_max_bytes = (5*1024*1024).to_i
 
   # TTL for pet ownership invitations (1 week)
   config.pet_invitation_ttl_seconds = 7*24*60*60
