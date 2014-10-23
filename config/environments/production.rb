@@ -1,5 +1,16 @@
 Rails.application.configure do
+
   # Settings specified here will take precedence over those in config/application.rb.
+
+  # Config used for amazon s3 file uploads
+  config.s3_bucket_name = "petpal-dev"
+  config.s3_bucket_region = "us-west-1"
+  config.s3_aws_access_key_id = "AKIAIZQ6XL7HT2B2VMMQ"
+  config.s3_aws_secret_access_key = "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"
+  config.s3_full_image_max_width = 1280
+  config.s3_full_image_max_height = 1280
+  config.s3_thumb_image_max_width = 300
+  config.s3_thumb_image_max_height = 300
 
   # TTL for pet ownership invitations (1 week)
   config.pet_invitation_ttl_seconds = 7*24*60*60

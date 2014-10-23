@@ -2,9 +2,10 @@ class PetsController < AuthenticatedController
 
   include MongoIdHelper
   include PetBreedHelper
+  include S3Helper
 
   before_action :ensure_authenticated
-  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user, :create_pet_ownership_invitation]
+  before_action :ensure_owner_of_pet, only: [:update_pet, :get_owned_pet_for_logged_in_user, :create_pet_ownership_invitation, :upload_avatar_for_pet_owned_by_logged_in_user]
 
   #######################################################
   # Creates a new pet object. When the pet object has
@@ -22,7 +23,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while creating the pet object
   #
   # EXAMPLE LOCAL:
-  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: WZJK3VUF3-SwrqasCxGD" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
+  # curl -v -X POST http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4" -d '{"name":"Rotty the Rottweiler","birth_year":2012,"creature_type":0,"breed_bundle_id":"dog1","weight_grams":5100}'
   #######################################################
   def create_pet
 
@@ -38,7 +39,8 @@ class PetsController < AuthenticatedController
         birth_year: pet_args[:birth_year],
         creature_type: pet_args[:creature_type],
         breed_bundle_id: pet_args[:breed_bundle_id],
-        weight_grams: pet_args[:weight_grams]
+        weight_grams: pet_args[:weight_grams],
+        creator_user_id: @authenticated_user_id
     )
 
     if(!pet.valid?)
@@ -66,7 +68,7 @@ class PetsController < AuthenticatedController
     )
 
     if(!pet_ownership.valid?)
-      handle_mongoid_validation_error(pet_ownership)
+      handle_mongoid_validation_error(pet_ownership, pet_args)
       return
     end
 
@@ -79,7 +81,15 @@ class PetsController < AuthenticatedController
       return
     end
 
-    render :status => 201, :json => {:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams}
+    begin
+      pet_response_fields = get_pet_response_fields_for_pet(pet)
+    rescue => e
+      logger.error "create_pet(): Pet #{pet.pet_id} created, but unexpected error when generating response fields, user #{@authenticated_email}:#{@authenticated_user_id}, pet_args #{pet_args}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    render :status => 201, :json => { :pet => pet_response_fields }
   end
 
 
@@ -140,6 +150,93 @@ class PetsController < AuthenticatedController
 
     logger.info "update_pet(): Pet #{@owned_pet.pet_id} updated by user #{@authenticated_email}:#{@authenticated_user_id}"
     head 204
+  end
+
+
+  ###############################################################
+  #
+  # Uploads a file to S3.
+  #
+  # Upon successful upload, the information about the uploaded file is stored in the pet
+  # object (TODO)
+  #
+  # 401:
+  # - Authentication failed - user not logged in
+  # - Authorization failed - user not owner of the pet for which image is being uploaded
+  #
+  # 500:
+  # - If binary content not present in the request
+  # - If error occurs while transferring the file to S3
+  #
+  # EXAMPLE LOCAL:
+  # curl -v -X POST -H "Content-Type: application/octet-stream" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4" "http://127.0.0.1:3000/pet/66c27fb2-1a1e-4a51-ae8f-df604e638386/avatar" --data-binary "@/Users/per/Desktop/test.png"
+  ###############################################################
+  def upload_avatar_for_pet_owned_by_logged_in_user
+
+    #
+    # Note: Scheme for storing files on S3:
+    #
+    #    BUCKET/HEAP/SUBHEAP/FILENAME
+    #
+    # For now we use the same file name every time an avatar is uploaded. This means
+    # that in s3 the previously uploaded avatar file will be overwritten the next
+    # a new avatar is uploaded for the same pet.
+    #
+
+    s3_heap = "pet_avatar"
+    s3_subheap = @owned_pet.pet_id
+    upload_dir = generate_file_dir(s3_heap, s3_subheap)
+    file_name = @owned_pet.pet_id
+
+    create_thumb = true
+
+    begin
+      s3_info = upload_file_to_s3(upload_dir, s3_heap, s3_subheap, file_name, create_thumb)
+    rescue => e
+      trace = e.backtrace[0,10].join("\n")
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): Unable to upload avatar to S3 for pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, request.params = #{request.params.inspect}, error: #{e.inspect}, trace #{trace}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): Avatar uploaded for pet #{@owned_pet.pet_id}, s3_info: #{s3_info}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+
+    #
+    # Store the s3 upload id(s) in the pet object
+    #
+
+    s3_upload_ids = Array.new
+    s3_urls = Hash.new
+
+    s3_upload_ids.push(s3_info[:upload_id])
+    s3_urls[:avatar_s3_url] = s3_info[:url]
+    @owned_pet.avatar_upload_id = s3_info[:upload_id]
+
+    if(create_thumb)
+      s3_upload_ids.push(s3_info[:upload_id_thumb])
+      s3_urls[:avatar_s3_url_thumb] = s3_info[:url_thumb]
+      @owned_pet.avatar_upload_id_thumb = s3_info[:upload_id_thumb]
+    else
+      # If we didn't actually create a thumb, we need to make sure the reference to any previously
+      # uploaded one is wiped (since that thumbnail file might be lingering on S3..:-)
+      @owned_pet.unset(:avatar_upload_id_thumb)
+    end
+
+    if(!@owned_pet.valid?)
+      handle_mongoid_validation_error(@owned_pet, request.params)
+      return
+    end
+
+    begin
+      @owned_pet.save!
+      logger.info "upload_avatar_for_pet_owned_by_logged_in_user(): S3 upload ids #{s3_upload_ids} saved in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+    rescue => e
+      logger.error "upload_avatar_for_pet_owned_by_logged_in_user(): S3 uploads #{s3_upload_ids} saved, but unexpected error when saving s3 upload id(s) in pet #{@owned_pet.pet_id}, logged in user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
+    render :status => 201, :json => {:avatar_urls => s3_urls}
   end
 
 
@@ -247,7 +344,7 @@ class PetsController < AuthenticatedController
   #  - An unexpected error occurred while fetching the owned pets
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
+  # curl -v -X GET http://127.0.0.1:3000/pet -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: C5tZb5t6-ubJLs6K5yQ4"
   #######################################################
   def get_owned_pets_for_logged_in_user
 
@@ -268,7 +365,15 @@ class PetsController < AuthenticatedController
     owned_pet_ids.each do | pet_id |
       begin
         pet = Pet.find_by(pet_id: pet_id)
-        owned_pets.push({:pet_id => pet.pet_id, :name => pet.name, :creature_type => pet.creature_type, :breed_bundle_id => pet.breed_bundle_id, :weight_grams => pet.weight_grams})
+
+        begin
+          pet_response_fields = get_pet_response_fields_for_pet(pet)
+        rescue => e
+          logger.error "get_owned_pets_for_logged_in_user(): Unexpected error when generating response fields for pet #{pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+          render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+          return
+        end
+        owned_pets.push(pet_response_fields)
       rescue Mongoid::Errors::DocumentNotFound => e
         logger.error "get_owned_pets_for_logged_in_user(): An ownership for pet #{pet_id} was found for user #{@authenticated_email}:#{@authenticated_user_id}, but the pet does not exist!"
         render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
@@ -292,11 +397,20 @@ class PetsController < AuthenticatedController
   # - An unexpected error occurred while fetching the pet
   #
   # EXAMPLE LOCAL:
-  # curl -v -X GET http://127.0.0.1:3000/pet/472c5b25-890d-41d2-b5e7-ac311e4bae2d -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: Xa6yCYdG_XNdDuEGjZry"
+  # curl -v -X GET http://127.0.0.1:3000/pet/66c27fb2-1a1e-4a51-ae8f-df604e638386 -H "Accept: application/json" -H "Content-Type: application/json" -H "X-User-Token: D1g69DsLohzSsB326gWx"
   #######################################################
   def get_owned_pet_for_logged_in_user
+
+    begin
+      pet_response_fields = get_pet_response_fields_for_pet(@owned_pet)
+    rescue => e
+      logger.error "get_owned_pet_for_logged_in_user(): Unexpected error when generating response fields for pet #{@owned_pet.pet_id}, user #{@authenticated_email}:#{@authenticated_user_id}, error: #{e.inspect}"
+      render :status => 500, :json => {:error => I18n.t("500response_internal_server_error")}
+      return
+    end
+
     logger.info "get_owned_pet_for_logged_in_user(): Found pet #{@owned_pet.pet_id} owned by user #{@authenticated_email}:#{@authenticated_user_id}"
-    render :status => 200, :json => {:pet_id => @owned_pet.pet_id, :name => @owned_pet.name, :creature_type => @owned_pet.creature_type, :breed_bundle_id => @owned_pet.breed_bundle_id, :weight_grams => @owned_pet.weight_grams}
+    render :status => 201, :json => { :pet => pet_response_fields }
   end
 
   #######################################################
@@ -437,7 +551,7 @@ class PetsController < AuthenticatedController
     )
 
     if(!pet_ownership.valid?)
-      handle_mongoid_validation_error(pet_ownership)
+      handle_mongoid_validation_error(pet_ownership, request.params)
       return
     end
 
@@ -497,6 +611,45 @@ class PetsController < AuthenticatedController
     invitation_id_with_hyphens = truncated_inviation_id.insert(3, '-').insert(7, '-')
 
     return invitation_id_with_hyphens
+  end
+
+  private
+
+  ########################################################
+  #
+  # Produce a hash of all the fields to include for a pet
+  # in a response
+  #
+  # If an avatar has been uploaded for the pet, go to the
+  # s3 uploads table to get the image url.
+  #
+  ########################################################
+  def get_pet_response_fields_for_pet(pet)
+    pet_response_fields = Hash.new
+    pet_response_fields[:pet_id] = pet.pet_id
+    pet_response_fields[:name] = pet.name
+    pet_response_fields[:creature_type] = pet.creature_type
+    pet_response_fields[:breed_bundle_id] = pet.breed_bundle_id
+    if(!pet.weight_grams.blank?)
+      pet_response_fields[:weight_grams] = pet.weight_grams
+    end
+    if(!pet.avatar_upload_id.blank?)
+      begin
+        s3_upload = S3Upload.find_by(_id: pet.avatar_upload_id)
+        pet_response_fields[:avatar_s3_url] = s3_upload.url
+      rescue Mongoid::Errors::DocumentNotFound => e
+        raise "get_pet_response_fields_for_pet(): The pet #{pet.pet_id} has an avatar_upload_id #{pet.avatar_upload_id} but no s3 upload was found, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      end
+    end
+    if(!pet.avatar_upload_id_thumb.blank?)
+      begin
+        s3_upload_thumb = S3Upload.find_by(_id: pet.avatar_upload_id_thumb)
+        pet_response_fields[:avatar_s3_url_thumb] = s3_upload_thumb.url
+      rescue Mongoid::Errors::DocumentNotFound => e
+        raise "get_pet_response_fields_for_pet(): The pet #{pet.pet_id} has an avatar_upload_id_thumb #{pet.avatar_upload_id_thumb} but no s3 upload was found, logged in user #{@authenticated_email}:#{@authenticated_user_id}"
+      end
+    end
+    return pet_response_fields
   end
 
 end

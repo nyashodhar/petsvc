@@ -17,6 +17,7 @@ Rails.application.routes.draw do
   post "pet", to: "pets#create_pet", as: 'create_pet'
   post "pet/invitation", to: "pets#create_pet_ownership_invitation", as: 'create_pet_ownership_invitation'
   post "pet/ownership", to: "pets#create_pet_ownership_from_invitation", as: 'create_pet_ownership_from_invitation'
+  post "pet/:pet_id/avatar", to: "pets#upload_avatar_for_pet_owned_by_logged_in_user", as: 'upload_avatar_for_pet_owned_by_logged_in_user'
   put "pet/:pet_id", to: "pets#update_pet", as: 'update_pet'
   delete "pet/:pet_id/ownership", to: "pets#remove_pet_ownership_for_logged_in_user", as: 'remove_pet_ownership_for_logged_in_user'
   get "pet/ownership", to: "pets#get_owned_pet_ids_for_logged_in_user", as: 'get_owned_pet_ids_for_logged_in_user'

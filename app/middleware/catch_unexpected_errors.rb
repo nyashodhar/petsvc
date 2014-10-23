@@ -24,6 +24,10 @@ class CatchUnexpectedErrors
       return handleError(error)
     rescue AbstractController::DoubleRenderError => error
       return handleError(error)
+    rescue Mongoid::Errors::UnknownAttribute => error
+      return handleError(error)
+    rescue LoadError => error
+      return handleError(error)
     end
   end
 
