@@ -16,7 +16,7 @@ Rails.application.configure do
   config.pet_invitation_ttl_seconds = 7*24*60*60
 
   # Base URL for downstream auth service
-  config.authsvc_base_url = "https://authsvc.petpal.mobi"
+  config.authsvc_base_url = "http://ec2-54-172-145-228.compute-1.amazonaws.com"
 
   #
   # A set of emails that are known to be internal users and
@@ -41,7 +41,7 @@ Rails.application.configure do
   #
   #         requirepass supersecretpassword123
   #
-  config.redis_password_required = true
+  config.redis_password_required = false
   config.redis_password = "test123"
 
   # Code is not reloaded between requests.
